@@ -17,7 +17,12 @@ export default function PlatformSupport() {
     setLoading(true);
     try { setTickets(await api.platformSupport()); } catch (e) { notify(e.message); } finally { setLoading(false); }
   }, [notify]);
-  useEffect(() => { load(); }, [load]);
+  // Live update — protyek 10s-e notun tenant message/status reload chara-i ashe
+  useEffect(() => {
+    load();
+    const id = setInterval(() => { api.platformSupport().then(setTickets).catch(() => {}); }, 10000);
+    return () => clearInterval(id);
+  }, [load]);
 
   const sendReply = async (t) => {
     const reply = (replyMap[t.id] || "").trim();

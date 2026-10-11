@@ -15,7 +15,13 @@ export default function ContactSupportModal({ open, onClose }) {
   const load = useCallback(async () => {
     try { setTickets(await api.saasSupportList()); } catch { /* ignore */ }
   }, []);
-  useEffect(() => { if (open) load(); }, [open, load]);
+  // Open thakle protyek 10s-e refresh — owner reply dile reload chara-i dekhabe
+  useEffect(() => {
+    if (!open) return;
+    load();
+    const id = setInterval(load, 10000);
+    return () => clearInterval(id);
+  }, [open, load]);
 
   const submit = async () => {
     if (!subject.trim() || !message.trim()) { notify("Subject ar message din"); return; }
@@ -42,7 +48,7 @@ export default function ContactSupportModal({ open, onClose }) {
 
         {tickets.length > 0 && (
           <div className="mt-2 space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Agের message</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Purono message</p>
             {tickets.map((t) => (
               <div key={t.id} className="rounded-xl border border-slate-100 dark:border-white/5 p-3 text-sm">
                 <div className="flex items-center justify-between">
