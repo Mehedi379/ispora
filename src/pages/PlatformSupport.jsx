@@ -3,7 +3,9 @@ import { Loader2, LifeBuoy, Send } from "lucide-react";
 import { useStore } from "../store";
 import { api } from "../api";
 
-// Owner support inbox — tenant-der message dekhe reply dey
+// Owner support inbox — tenant-der message dekhe reply dey.
+// NOTE: card-ta inline rakha (component body-r bhitore <Card> define korle protibar
+// remount hoto ar reply input-er focus 1 char por chole jeto — ei bug-i chilo).
 export default function PlatformSupport() {
   const { notify } = useStore();
   const [tickets, setTickets] = useState([]);
@@ -29,8 +31,8 @@ export default function PlatformSupport() {
   const open = tickets.filter((t) => t.status !== "closed");
   const closed = tickets.filter((t) => t.status === "closed");
 
-  const Card = ({ t }) => (
-    <div className="card p-4">
+  const card = (t) => (
+    <div key={t.id} className="card p-4">
       <div className="flex items-center justify-between">
         <div>
           <p className="font-semibold text-slate-800 dark:text-white">{t.subject}</p>
@@ -57,8 +59,8 @@ export default function PlatformSupport() {
         <p className="text-sm text-slate-400">Tenant-ra (ISP) ja message pathay — ekhane reply din.</p>
       </div>
       {tickets.length === 0 && <div className="card p-10 text-center text-sm text-slate-400">Ekhono kono support message nei.</div>}
-      {open.length > 0 && <><p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Open ({open.length})</p><div className="space-y-3">{open.map((t) => <Card key={t.id} t={t} />)}</div></>}
-      {closed.length > 0 && <><p className="pt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Closed</p><div className="space-y-3">{closed.map((t) => <Card key={t.id} t={t} />)}</div></>}
+      {open.length > 0 && <><p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Open ({open.length})</p><div className="space-y-3">{open.map(card)}</div></>}
+      {closed.length > 0 && <><p className="pt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Closed</p><div className="space-y-3">{closed.map(card)}</div></>}
     </div>
   );
 }
