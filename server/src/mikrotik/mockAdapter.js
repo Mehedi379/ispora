@@ -4,12 +4,12 @@
 
 // Deterministic simulated PPPoE secrets (router-e thaka user der moto)
 const MOCK_SECRETS = [
-  { name: "mockuser1001", profile: "10M", disabled: false, comment: "Rahim (sim)", address: "10.10.0.11" },
-  { name: "mockuser1002", profile: "20M", disabled: false, comment: "Karim (sim)", address: "10.10.0.12" },
-  { name: "mockuser1003", profile: "20M", disabled: true, comment: "Jamal (sim)", address: "10.10.0.13" },
-  { name: "mockuser1004", profile: "40M", disabled: false, comment: "Nasir (sim)", address: "10.10.0.14" },
-  { name: "mockuser1005", profile: "10M", disabled: false, comment: "Sumon (sim)", address: "10.10.0.15" },
-  { name: "user1001",     profile: "10M", disabled: false, comment: "existing match (sim)", address: "10.10.0.21" },
+  { name: "mockuser1001", password: "pass1001", service: "pppoe", profile: "10M", callerId: "AA:BB:CC:00:10:01", disabled: false, lastLoggedOut: "oct/10/2026 21:14:03", comment: "Rahim (sim)", address: "10.10.0.11" },
+  { name: "mockuser1002", password: "pass1002", service: "pppoe", profile: "20M", callerId: "AA:BB:CC:00:10:02", disabled: false, lastLoggedOut: "oct/11/2026 08:02:55", comment: "Karim (sim)", address: "10.10.0.12" },
+  { name: "mockuser1003", password: "pass1003", service: "pppoe", profile: "20M", callerId: "AA:BB:CC:00:10:03", disabled: true,  lastLoggedOut: "sep/28/2026 19:40:11", comment: "Jamal (sim)", address: "10.10.0.13" },
+  { name: "mockuser1004", password: "pass1004", service: "pppoe", profile: "40M", callerId: "AA:BB:CC:00:10:04", disabled: false, lastLoggedOut: "oct/12/2026 06:33:20", comment: "Nasir (sim)", address: "10.10.0.14" },
+  { name: "mockuser1005", password: "pass1005", service: "pppoe", profile: "10M", callerId: "AA:BB:CC:00:10:05", disabled: false, lastLoggedOut: "", comment: "Sumon (sim)", address: "10.10.0.15" },
+  { name: "user1001",     password: "pass0001", service: "pppoe", profile: "10M", callerId: "AA:BB:CC:00:10:21", disabled: false, lastLoggedOut: "oct/09/2026 23:51:00", comment: "existing match (sim)", address: "10.10.0.21" },
 ];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

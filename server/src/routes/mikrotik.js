@@ -162,7 +162,7 @@ r.get("/servers/:id/import/preview", async (req, res) => {
     const dupeSet = new Set(existing.map((c) => c.pppoe));
     res.json({
       simulated: s.mode !== "real",
-      users: users.map((u) => ({ name: u.name, profile: u.profile, disabled: u.disabled, comment: u.comment, duplicate: dupeSet.has(u.name) })),
+      users: users.map((u) => ({ name: u.name, password: u.password || "", service: u.service || "", profile: u.profile, callerId: u.callerId || "", disabled: u.disabled, lastLoggedOut: u.lastLoggedOut || "", comment: u.comment, duplicate: dupeSet.has(u.name) })),
     });
   } catch (e) {
     res.status(400).json({ ...adapterError(e), simulated: s.mode !== "real" });

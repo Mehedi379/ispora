@@ -50,8 +50,12 @@ export class RealAdapter {
       const rows = await conn.write("/ppp/secret/print");
       return rows.map((r) => ({
         name: r.name,
+        password: r.password || "",
+        service: r.service || "",
         profile: r.profile || "",
+        callerId: r["caller-id"] || "",
         disabled: r.disabled === "true" || r.disabled === true,
+        lastLoggedOut: r["last-logged-out"] || "",
         comment: r.comment || "",
         address: r["remote-address"] || "",
         simulated: false,
