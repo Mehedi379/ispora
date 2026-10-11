@@ -55,7 +55,10 @@ app.set("trust proxy", 1);
 // CLIENT_ORIGIN = "https://a.pages.dev, https://b.pages.dev" (trim soho);
 // env missing hole wildcard — deploy guide e set korte boloa ache
 const origins = process.env.CLIENT_ORIGIN?.split(",").map((s) => s.trim()).filter(Boolean);
-app.use(cors({ origin: origins?.length ? origins : "*" }));
+// "*" ba unset => wildcard STRING (cors-e array-te "*" dile exact-match kore, kono real
+// origin match kore na → CORS header ashe na). Specific list hole oi list-i allow.
+const corsOrigin = (!origins?.length || origins.includes("*")) ? "*" : origins;
+app.use(cors({ origin: corsOrigin }));
 app.use(express.json());
 // SSLCOMMERZ IPN form-encoded POST kore — tai urlencoded-o parse kori
 app.use(express.urlencoded({ extended: true }));
