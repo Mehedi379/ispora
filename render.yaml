@@ -10,7 +10,7 @@ services:
     runtime: node
     rootDir: server
     plan: free
-    buildCommand: npm ci && npx prisma generate && npx prisma db push --accept-data-loss
+    buildCommand: npm ci --include=dev && npx prisma generate && npx prisma db push --accept-data-loss
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
@@ -19,6 +19,6 @@ services:
       - key: CLIENT_ORIGIN
         sync: false
       - key: JWT_SECRET
-        generate: true
+        generateValue: true
       - key: NODE_ENV
         value: production
