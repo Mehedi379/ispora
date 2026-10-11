@@ -117,6 +117,8 @@ export default function PayPanel({ status, currentPlanId, onPaid }) {
               </button>
             </>
           )}
+          <button onClick={() => { setInv(null); setTxnId(""); setPayInfo(null); }}
+            className="mt-2 w-full text-center text-xs font-medium text-slate-400 transition hover:text-gold-500">← Back / onno plan dekho</button>
         </div>
       )}
     </div>
