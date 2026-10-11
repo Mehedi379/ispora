@@ -1,0 +1,9 @@
+# Cloudflare Workers static-assets deploy for ISPora frontend (Vite SPA).
+# Build: npm run build (produces ./dist) → Deploy: npx wrangler deploy (uploads ./dist).
+name = "ispora"
+compatibility_date = "2026-09-01"
+
+[assets]
+directory = "./dist"
+# SPA: unknown path hole index.html serve (react-router kaj korbe)
+not_found_handling = "single-page-application"
