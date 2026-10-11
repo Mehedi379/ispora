@@ -1,7 +1,13 @@
-// ISPora API client — backend er sathe kotha bole
-const BASE = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+// ISPora API client — backend er sathe kotha bole.
+// VITE_API_URL set thakle oita; nahole localhost (dev) / live Render URL (production).
+// Eta fallback — Cloudflare build var miss korleo live-e kaj korbe.
+const isLocal = typeof location !== "undefined" && /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+const BASE =
+  import.meta.env.VITE_API_URL ||
+  (isLocal ? "http://localhost:4000/api" : "https://ispora-api.onrender.com/api");
 const TOKEN_KEY = "ispora.token";
-const TIMEOUT_MS = 15000;
+// Render free tier 15 min por ghumay — prothom request-e cold start ~40s lage, tai boro timeout
+const TIMEOUT_MS = 50000;
 
 export const getToken = () => localStorage.getItem(TOKEN_KEY);
 export const setToken = (t) => localStorage.setItem(TOKEN_KEY, t);
