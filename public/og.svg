@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f1b2d"/>
+      <stop offset="1" stop-color="#060b14"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f5d272"/>
+      <stop offset="1" stop-color="#c99a2e"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.7" cy="0.25" r="0.5">
+      <stop offset="0" stop-color="#e9c45a" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#e9c45a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <g transform="translate(90,250)">
+    <rect x="0" y="-44" width="88" height="88" rx="22" fill="url(#gold)"/>
+    <g transform="translate(44,0)" fill="none" stroke="#0b1220" stroke-width="7" stroke-linecap="round">
+      <path d="M-26 2 a37 37 0 0 1 52 0"/>
+      <path d="M-15 14 a21 21 0 0 1 30 0"/>
+      <circle cx="0" cy="26" r="4.5" fill="#0b1220" stroke="none"/>
+    </g>
+  </g>
+  <text x="210" y="268" font-family="Segoe UI, Arial, sans-serif" font-size="92" font-weight="800" fill="#ffffff">ISP<tspan fill="url(#gold)">ora</tspan></text>
+  <text x="212" y="330" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="600" letter-spacing="3" fill="#9fb0c6">SMART ISP BILLING &amp; MANAGEMENT</text>
+  <text x="90" y="440" font-family="Segoe UI, Arial, sans-serif" font-size="54" font-weight="800" fill="#ffffff">ISP business chalan <tspan fill="url(#gold)">ekdom automatic</tspan></text>
+  <text x="90" y="500" font-family="Segoe UI, Arial, sans-serif" font-size="30" fill="#9fb0c6">Billing · MikroTik · OLT · Accounting · HR · SMS — 7 din free</text>
+  <g transform="translate(90,540)">
+    <rect width="300" height="56" rx="14" fill="url(#gold)"/>
+    <text x="150" y="37" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700" fill="#0b1220">Start Free Trial →</text>
+  </g>
+</svg>
