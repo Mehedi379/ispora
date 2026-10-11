@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { api } from "../api";
 import { BRAND } from "../data";
+import { LogoMark } from "../components/Logo";
 
 const FEATURES = [
   { icon: Users, title: "Customer & Billing", desc: "Customer, package, invoice, due, auto-bill — puro billing cycle ek jaygay. PPPoE, zone, box, connection type soho full profile." },
@@ -57,7 +58,7 @@ export default function Landing() {
       <header className="sticky top-0 z-30 border-b border-white/5 bg-navy-950/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
           <div className="flex items-center gap-2.5">
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 text-navy-950 shadow-gold"><Wifi size={18} /></div>
+            <LogoMark size={36} />
             <span className="font-display text-lg font-extrabold">{BRAND.name}</span>
           </div>
           <nav className="hidden items-center gap-6 text-sm text-slate-300 md:flex">
@@ -250,7 +251,7 @@ export default function Landing() {
       <footer className="border-t border-white/10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 sm:flex-row">
           <div className="flex items-center gap-2.5">
-            <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-gold-400 to-gold-600 text-navy-950"><Wifi size={16} /></div>
+            <LogoMark size={32} />
             <span className="font-display font-bold">{BRAND.name}</span>
             <span className="text-sm text-slate-500">— {BRAND.tagline}</span>
           </div>

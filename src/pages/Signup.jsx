@@ -5,6 +5,7 @@ import { Wifi, Mail, Lock, Building2, User, Phone, UserPlus, Loader2 } from "luc
 import { useStore } from "../store";
 import { api } from "../api";
 import { BRAND } from "../data";
+import { LogoMark } from "../components/Logo";
 
 // Self-serve signup — notun ISP register kore 7-din free trial pay, shonge shonge dukhe jay
 export default function Signup() {
@@ -41,7 +42,7 @@ export default function Signup() {
         transition={{ type: "spring", damping: 20 }}
         className="w-full max-w-md rounded-2xl border border-white/10 bg-navy-900/80 p-7 shadow-premium backdrop-blur-xl">
         <div className="mb-6 flex flex-col items-center text-center">
-          <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-gold-400 to-gold-600 text-navy-950 shadow-gold"><Wifi size={26} /></div>
+          <div className="grid h-14 w-14 place-items-center"><LogoMark size={56} /></div>
           <h1 className="mt-3 font-display text-2xl font-bold text-white">{BRAND.name} e account khulun</h1>
           <p className="text-sm text-slate-400">7-din free trial — card lage na</p>
         </div>

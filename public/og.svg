@@ -15,12 +15,18 @@
   </defs>
   <rect width="1200" height="630" fill="url(#bg)"/>
   <rect width="1200" height="630" fill="url(#glow)"/>
-  <g transform="translate(90,250)">
-    <rect x="0" y="-44" width="88" height="88" rx="22" fill="url(#gold)"/>
-    <g transform="translate(44,0)" fill="none" stroke="#0b1220" stroke-width="7" stroke-linecap="round">
-      <path d="M-26 2 a37 37 0 0 1 52 0"/>
-      <path d="M-15 14 a21 21 0 0 1 30 0"/>
-      <circle cx="0" cy="26" r="4.5" fill="#0b1220" stroke="none"/>
+  <g transform="translate(90,206)">
+    <rect x="0" y="0" width="88" height="88" rx="22" fill="url(#gold)"/>
+    <g transform="translate(44,44) scale(1.55) translate(-24,-24)">
+      <g stroke="#0b1220" stroke-width="2.6" stroke-linecap="round">
+        <line x1="24" y1="23" x2="24" y2="12"/>
+        <line x1="24" y1="23" x2="13.5" y2="32"/>
+        <line x1="24" y1="23" x2="34.5" y2="32"/>
+      </g>
+      <g fill="#0b1220">
+        <circle cx="24" cy="23" r="5.4"/><circle cx="24" cy="11" r="3.4"/>
+        <circle cx="12.5" cy="33" r="3.4"/><circle cx="35.5" cy="33" r="3.4"/>
+      </g>
     </g>
   </g>
   <text x="210" y="268" font-family="Segoe UI, Arial, sans-serif" font-size="92" font-weight="800" fill="#ffffff">ISP<tspan fill="url(#gold)">ora</tspan></text>

@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Wifi, Mail, Lock, LogIn, Loader2 } from "lucide-react";
+import { Mail, Lock, LogIn, Loader2 } from "lucide-react";
 import { useStore } from "../store";
 import { BRAND } from "../data";
+import { LogoMark } from "../components/Logo";
 
 export default function Login() {
   const { login } = useStore();
@@ -28,9 +29,7 @@ export default function Login() {
         transition={{ type: "spring", damping: 20 }}
         className="w-full max-w-sm rounded-2xl border border-white/10 bg-navy-900/80 p-7 shadow-premium backdrop-blur-xl">
         <div className="mb-6 flex flex-col items-center text-center">
-          <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-gold-400 to-gold-600 text-navy-950 shadow-gold">
-            <Wifi size={26} />
-          </div>
+          <LogoMark size={56} />
           <h1 className="mt-3 font-display text-2xl font-bold text-white">{BRAND.name}</h1>
           <p className="text-sm text-slate-400">{BRAND.tagline}</p>
         </div>

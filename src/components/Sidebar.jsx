@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { BRAND } from "../data";
 import { useStore } from "../store";
+import Logo from "./Logo";
 
 // Platform Owner (SaaS malik) menu — tenant admin-er ISP menu theke alada
 const platformMenu = [
@@ -262,18 +263,8 @@ export default function Sidebar({ onNavigate }) {
         );
   return (
     <div className="flex h-full flex-col bg-navy-950 text-white">
-      <div className="flex items-center gap-3 px-5 py-5">
-        <div className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 shadow-gold">
-          <Wifi size={22} className="text-navy-950" />
-        </div>
-        <div>
-          <h1 className="font-display text-lg font-extrabold leading-none">
-            <span className="bg-gradient-to-r from-gold-300 to-gold-500 bg-clip-text text-transparent">{BRAND.name}</span>
-          </h1>
-          <p className="mt-1 text-[10px] uppercase tracking-wider text-slate-400">
-            {BRAND.tagline}
-          </p>
-        </div>
+      <div className="px-5 py-5">
+        <Logo size={44} sub />
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 pb-6">
