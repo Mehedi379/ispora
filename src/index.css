@@ -1,0 +1,46 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@500;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #f4f6fb;
+  --card: #ffffff;
+}
+.dark {
+  --bg: #070e1c;
+  --card: #0b1526;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  font-family: "Inter", system-ui, sans-serif;
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Thin premium scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(212,175,55,0.35);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(212,175,55,0.6); }
+
+@layer components {
+  .card {
+    @apply rounded-2xl bg-white dark:bg-navy-900 border border-slate-200/70 dark:border-white/5 shadow-premium;
+  }
+  .gold-text {
+    @apply bg-gradient-to-r from-gold-600 to-gold-700 bg-clip-text text-transparent dark:from-gold-300 dark:to-gold-500;
+  }
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-gold-400 to-gold-600 px-4 py-2.5 text-sm font-semibold text-navy-950 shadow-gold transition hover:brightness-110 active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-white/10 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-white/5;
+  }
+}

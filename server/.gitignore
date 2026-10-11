@@ -1,0 +1,10 @@
+node_modules/
+dev.db
+dev.db-journal
+*.log
+.DS_Store
+
+# Secrets — JWT/DATABASE_URL live-e push korle leak hoye jeto
+.env
+.env.*
+!.env.example

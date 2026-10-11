@@ -1,0 +1,1347 @@
+// ISPora database schema
+// Dev/live duita-e PostgreSQL (Neon free tier) — SQLite file ephemeral host-e lose hoye jay,
+// tai deploy-er jonno Postgres-e switch kora hoyeche.
+// Local dev: server/.env e same Neon DATABASE_URL (ba nijer local postgres) din.
+// Purano sqlite dev.db backup hishebe ache — data onno thakbe, need holes
+// `node src/sqliteToPostgres.js` diye import korte parben.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  reseller
+  collector
+}
+
+// ===================== SaaS Platform (multi-tenant) =====================
+// Protita ISP = ekta Tenant. Business data (Client/Payment/...) protita row-e
+// `tenantId` scalar diye alada — app-layer middleware (db.js) auto-scope kore.
+// Platform model gula (niche) global — Platform Owner panel ei gula control kore.
+
+model Tenant {
+  id           Int           @id @default(autoincrement())
+  businessName String
+  ownerName    String?
+  email        String        @unique // signup/login identity (global unique)
+  phone        String?
+  // trial | active | past_due | suspended
+  status       String        @default("trial")
+  createdAt    DateTime      @default(now())
+
+  planId       Int?
+  plan         Plan?         @relation(fields: [planId], references: [id])
+  subscription Subscription?
+  users        User[]
+
+  @@index([status])
+}
+
+model Plan {
+  id            Int            @id @default(autoincrement())
+  name          String         @unique // Starter | Business | Enterprise ...
+  priceMonthly  Int            @default(0) // taka/mo
+  maxUsers      Int            @default(0) // end-customer cap; 0 = unlimited
+  features      String         @default("") // comma-separated unlocked feature keys ("*" = all)
+  active        Boolean        @default(true)
+  sortOrder     Int            @default(0)
+  createdAt     DateTime       @default(now())
+  tenants       Tenant[]
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id               Int           @id @default(autoincrement())
+  // trial | active | past_due | suspended | cancelled
+  status           String        @default("trial")
+  trialEndsAt      DateTime?
+  currentPeriodEnd DateTime?
+  nextBillDate     DateTime?
+  createdAt        DateTime      @default(now())
+
+  tenantId         Int           @unique
+  tenant           Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  planId           Int?
+  plan             Plan?         @relation(fields: [planId], references: [id])
+
+  invoices         SaasInvoice[]
+  payments         SaasPayment[]
+
+  @@index([status])
+}
+
+model SaasInvoice {
+  id             Int          @id @default(autoincrement())
+  number         String       @unique
+  amount         Int
+  status         String       @default("unpaid") // unpaid | paid | void
+  periodStart    DateTime?
+  periodEnd      DateTime?
+  issuedAt       DateTime     @default(now())
+  dueDate        DateTime?
+  note           String?
+
+  subscriptionId Int
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  tenantId       Int
+  payments       SaasPayment[]
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+model SaasPayment {
+  id             Int          @id @default(autoincrement())
+  amount         Int
+  method         String       @default("Manual") // Manual | bKash | Nagad | SSLCommerz | Bank
+  txnId          String?
+  status         String       @default("confirmed") // pending | confirmed | rejected
+  confirmedBy    Int?         // platform owner user id
+  note           String?
+  paidAt         DateTime     @default(now())
+
+  subscriptionId Int
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  invoiceId      Int?
+  invoice        SaasInvoice? @relation(fields: [invoiceId], references: [id])
+  tenantId       Int
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+
+// Platform-level key-value settings (owner config: bKash number, gateway keys ityadi) — global
+model PlatformSetting {
+  key   String @id
+  value String
+}
+
+// SaaS support — tenant (ISP) owner-er sathe contact kore (platform-level, global)
+model SaasTicket {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  subject   String
+  message   String
+  status    String   @default("open") // open | closed
+  reply     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  phone     String?
+  password  String
+  role      Role     @default(admin)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  address   String?
+  dob       String?
+  avatar    String?
+
+  // Multi-tenant: user kon ISP-er. Platform Owner-er tenantId null + isPlatformOwner true.
+  tenantId        Int?
+  tenant          Tenant?  @relation(fields: [tenantId], references: [id])
+  isPlatformOwner Boolean  @default(false)
+
+  // reseller er nijer clients
+  clients   Client[] @relation("ResellerClients")
+  payments  Payment[] @relation("CollectedBy")
+
+  @@index([tenantId])
+}
+
+model Zone {
+  id       Int        @id @default(autoincrement())
+  tenantId Int?
+  name     String
+  clients  Client[]
+  subZones SubZone[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+// Configuration lookups (Zone-er niche elaka, box/splitter, connection/client/protocol type)
+model SubZone {
+  id      Int      @id @default(autoincrement())
+  tenantId Int?
+  name    String
+  zone    Zone?    @relation(fields: [zoneId], references: [id])
+  zoneId  Int?
+  clients Client[]
+
+  @@unique([tenantId, name, zoneId])
+  @@index([zoneId])
+  @@index([tenantId])
+}
+
+// Splitter / distribution box (physical fiber box)
+model Box {
+  id       Int      @id @default(autoincrement())
+  tenantId Int?
+  name     String
+  code     String?
+  capacity Int      @default(0)
+  clients  Client[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model ConnectionType {
+  id      Int      @id @default(autoincrement())
+  tenantId Int?
+  name    String
+  clients Client[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model ClientType {
+  id      Int      @id @default(autoincrement())
+  tenantId Int?
+  name    String
+  clients Client[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model ProtocolType {
+  id      Int      @id @default(autoincrement())
+  tenantId Int?
+  name    String
+  clients Client[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model BillingStatus {
+  id   Int    @id @default(autoincrement())
+  tenantId Int?
+  name String
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model District {
+  id       Int       @id @default(autoincrement())
+  tenantId Int?
+  name     String
+  upazilas Upazila[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model Upazila {
+  id         Int       @id @default(autoincrement())
+  tenantId   Int?
+  name       String
+  district   District? @relation(fields: [districtId], references: [id])
+  districtId Int?
+
+  @@unique([tenantId, name, districtId])
+  @@index([districtId])
+  @@index([tenantId])
+}
+
+// New connection request (New Request menu) — approve korle Client toiri hoy
+model ClientRequest {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int?
+  name      String
+  phone     String
+  address   String?
+  pppoe     String?
+  area      String?  // zone name (request-er shomoy free text)
+  package   String?  // package name
+  note      String?
+  status    String   @default("pending") // pending | approved | rejected
+  createdAt DateTime @default(now())
+
+  @@index([status])
+  @@index([tenantId])
+}
+
+// VAS — Value Added Service (IPTV, OTT, Static IP, Cloud ityadi)
+model VasService {
+  id           Int              @id @default(autoincrement())
+  tenantId     Int?
+  name         String
+  type         String           @default("Other") // IPTV | OTT | Static IP | Cloud | Other
+  price        Int              @default(0)
+  active       Boolean          @default(true)
+  createdAt    DateTime         @default(now())
+  transactions VasTransaction[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+// VAS sale/charge log — Transaction History
+model VasTransaction {
+  id        Int        @id @default(autoincrement())
+  tenantId  Int?
+  amount    Int
+  note      String?
+  date      DateTime   @default(now())
+
+  service   VasService @relation(fields: [serviceId], references: [id])
+  serviceId Int
+
+  client    Client?    @relation(fields: [clientId], references: [id])
+  clientId  Int?
+
+  @@index([serviceId])
+  @@index([clientId])
+  @@index([date])
+  @@index([tenantId])
+}
+
+// Change Request — client package/info change er abedon, admin approve kore
+model ChangeRequest {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int?
+  type      String   @default("package") // package | info | other
+  detail    String?  // package name (package type) ba notun info
+  note      String?
+  status    String   @default("pending") // pending | approved | rejected
+  createdAt DateTime @default(now())
+
+  client    Client   @relation(fields: [clientId], references: [id])
+  clientId  Int
+
+  @@index([clientId])
+  @@index([status])
+  @@index([tenantId])
+}
+
+// Scheduler — bhobisshoter nirdishto date e client er upor action (auto cholbe)
+model Schedule {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int?
+  action    String   // disconnect | enable | package_change | reminder
+  runAt     DateTime
+  detail    String?  // package_change hole target package name
+  status    String   @default("pending") // pending | done | cancelled
+  note      String?
+  createdAt DateTime @default(now())
+  doneAt    DateTime?
+
+  client    Client   @relation(fields: [clientId], references: [id])
+  clientId  Int
+
+  @@index([clientId])
+  @@index([status])
+  @@index([runAt])
+  @@index([tenantId])
+}
+
+model Package {
+  id       Int      @id @default(autoincrement())
+  tenantId Int?
+  name     String
+  speed    String
+  price    Int
+  validity Int      @default(30)
+  active   Boolean  @default(true)
+  clients  Client[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model Client {
+  id         Int      @id @default(autoincrement())
+  tenantId   Int?
+  name       String
+  phone      String
+  pppoe      String
+  address    String?
+  status     String   @default("active") // active | due | expired | suspended
+  online     Boolean  @default(true)
+  due        Int      @default(0)
+  expiry     DateTime?
+  createdAt  DateTime @default(now())
+  deletedAt  DateTime?
+  // Churn: left customer (recycle bin theke alada — eder data thake, just inactive)
+  leftAt     DateTime?
+  // Client portal access (Portal Manage) — login korar jonno alada credential
+  portalEnabled  Boolean @default(false)
+  portalUser     String?
+  portalPassword String?
+
+  zone       Zone?    @relation(fields: [zoneId], references: [id])
+  zoneId     Int?
+
+  package    Package? @relation(fields: [packageId], references: [id])
+  packageId  Int?
+
+  // Configuration relations (Phase 2) — sob optional
+  connectionType   ConnectionType? @relation(fields: [connectionTypeId], references: [id])
+  connectionTypeId Int?
+  clientType       ClientType?     @relation(fields: [clientTypeId], references: [id])
+  clientTypeId     Int?
+  protocolType     ProtocolType?   @relation(fields: [protocolTypeId], references: [id])
+  protocolTypeId   Int?
+  box              Box?            @relation(fields: [boxId], references: [id])
+  boxId            Int?
+  subZone          SubZone?        @relation(fields: [subZoneId], references: [id])
+  subZoneId        Int?
+  // Network diagram POP link (Clients in Diagram)
+  pop              NetworkPop?     @relation(fields: [popId], references: [id])
+  popId            Int?
+
+  reseller   User?    @relation("ResellerClients", fields: [resellerId], references: [id])
+  resellerId Int?
+
+  invoices   Invoice[]
+  payments   Payment[]
+  tickets    Ticket[]
+  vasTransactions VasTransaction[]
+  changeRequests  ChangeRequest[]
+  schedules       Schedule[]
+
+  // FK columns Prisma auto-index kore na, ar deletedAt/resellerId har bar
+  // scan kore — data barle sweep/stats slow hoto
+  @@unique([tenantId, pppoe])
+  @@unique([tenantId, portalUser])
+  @@index([deletedAt])
+  @@index([resellerId])
+  @@index([zoneId])
+  @@index([packageId])
+  @@index([status])
+  @@index([leftAt])
+  @@index([tenantId])
+}
+
+model Invoice {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int?
+  number    String
+  amount    Int
+  status    String   @default("unpaid") // unpaid | partial | paid
+  issuedAt  DateTime @default(now())
+  dueDate   DateTime?
+  note      String?
+
+  client    Client   @relation(fields: [clientId], references: [id])
+  clientId  Int
+
+  payments  Payment[]
+
+  @@unique([tenantId, number])
+  @@index([clientId])
+  @@index([status])
+  @@index([issuedAt])
+  @@index([tenantId])
+}
+
+model Payment {
+  id          Int      @id @default(autoincrement())
+  tenantId    Int?
+  amount    Int
+  // Ei payment-ta due koto komiyechilo (overpay e clamp hoy, tai exact amount na) —
+  // void/delete e otai ferot dewa hoy, due exactly restore thake
+  dueDelta  Int      @default(0)
+  method      String   @default("Cash") // bKash | Nagad | Rocket | Cash | Bank
+  paidAt      DateTime @default(now())
+  note        String?
+
+  client      Client   @relation(fields: [clientId], references: [id])
+  clientId    Int
+
+  invoice     Invoice? @relation(fields: [invoiceId], references: [id])
+  invoiceId   Int?
+
+  collectedBy User?    @relation("CollectedBy", fields: [collectorId], references: [id])
+  collectorId Int?
+
+  @@index([clientId])
+  @@index([invoiceId])
+  @@index([paidAt])
+  @@index([tenantId])
+}
+
+model Transaction {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int?
+  type      String   // income | expense
+  head      String
+  amount    Int
+  note      String?
+  date      DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+// Key-value app settings (company info, billing rules, SMS gateway)
+model Setting {
+  id       Int    @id @default(autoincrement())
+  key      String
+  value    String
+  tenantId Int?
+
+  @@unique([tenantId, key])
+  @@index([tenantId])
+}
+
+model Ticket {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int?
+  number    String   // TK-101
+  subject   String
+  priority  String   @default("medium") // high | medium | low
+  status    String   @default("open")   // open | pending | closed
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client    Client?  @relation(fields: [clientId], references: [id])
+  clientId  Int?
+
+  category   SupportCategory? @relation(fields: [categoryId], references: [id])
+  categoryId Int?
+
+  @@unique([tenantId, number])
+  @@index([clientId])
+  @@index([tenantId])
+}
+
+// Support ticket category (Support & Ticketing)
+model SupportCategory {
+  id      Int      @id @default(autoincrement())
+  tenantId Int?
+  name    String
+  note    String?
+  tickets Ticket[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+// Network device registry (MikroTik NAS / OLT) — admin je device gula manage kore
+model NetDevice {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int?
+  name      String
+  type      String   @default("mikrotik") // mikrotik | olt
+  ip        String?
+  model     String?
+  capacity  Int      @default(0) // PPPoE user limit ba ONU capacity
+  status    String   @default("online") // online | offline
+  createdAt DateTime @default(now())
+
+  // MikroTik Server connection (RouterOS API) — password encrypted (crypto.js), never plain
+  mode          String    @default("mock") // mock | real
+  apiPort       Int       @default(8728)
+  username      String?
+  passwordEnc   String?   // AES-256-GCM encrypted router password
+  timeout       Int       @default(10) // seconds
+  version       String?   // RouterOS version (test connection e paoa)
+  connected     Boolean   @default(false)
+  lastConnected DateTime?
+
+  backups   MikrotikBackup[]
+  oltUsers  OltUser[]
+
+  @@index([type])
+  @@index([status])
+  @@index([tenantId])
+}
+
+// MikroTik backup metadata — real (router) ba simulated (mock) alada kora ache
+model MikrotikBackup {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int?
+  name      String
+  type      String   @default("simulated") // real | simulated
+  size      Int      @default(0)
+  note      String?
+  content   String?  // simulated backup er content (real hole router-e thake)
+  routerFile String? // real backup er router file name
+  createdAt DateTime @default(now())
+
+  server    NetDevice @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  serverId  Int
+
+  @@index([serverId])
+  @@index([type])
+  @@index([tenantId])
+}
+
+// OLT subscriber / ONU (Olt Users) — kon client kon OLT-er kon PON port e
+model OltUser {
+  id        Int       @id @default(autoincrement())
+  tenantId  Int?
+  name      String
+  onu       String?   // ONU serial / id
+  ponPort   String?   // e.g. PON-3
+  status    String    @default("online") // online | offline
+  signal    String?   // optical signal (dBm)
+  clientId  Int?      // optional soft-link to Client (FK na, churn edate)
+  createdAt DateTime  @default(now())
+
+  olt       NetDevice @relation(fields: [oltId], references: [id], onDelete: Cascade)
+  oltId     Int
+
+  @@index([oltId])
+  @@index([status])
+  @@index([tenantId])
+}
+
+// ---- HR & Payroll ----
+model Department {
+  id        Int        @id @default(autoincrement())
+  tenantId  Int?
+  name      String
+  positions Position[]
+  employees Employee[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model Position {
+  id           Int         @id @default(autoincrement())
+  tenantId     Int?
+  name         String
+  department   Department? @relation(fields: [departmentId], references: [id])
+  departmentId Int?
+  employees    Employee[]
+
+  @@unique([tenantId, name, departmentId])
+  @@index([departmentId])
+  @@index([tenantId])
+}
+
+// Salary component (earning ba deduction)
+model Payhead {
+  id     Int     @id @default(autoincrement())
+  tenantId Int?
+  name   String
+  type   String  @default("earning") // earning | deduction
+  amount Int     @default(0)
+  active Boolean @default(true)
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+// Resignation niyom (notice period ityadi)
+model ResignRule {
+  id         Int     @id @default(autoincrement())
+  tenantId   Int?
+  name       String
+  noticeDays Int     @default(30)
+  note       String?
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model Employee {
+  id           Int         @id @default(autoincrement())
+  tenantId     Int?
+  name         String
+  phone        String?
+  email        String?
+  address      String?
+  nid          String?
+  basicSalary  Int         @default(0)
+  joinDate     DateTime    @default(now())
+  status       String      @default("active") // active | resigned
+  resignDate   DateTime?
+  resignReason String?
+  createdAt    DateTime    @default(now())
+
+  department   Department? @relation(fields: [departmentId], references: [id])
+  departmentId Int?
+  position     Position?   @relation(fields: [positionId], references: [id])
+  positionId   Int?
+
+  attendances  Attendance[]
+  payslips     Payslip[]
+  leaveApplications LeaveApplication[]
+
+  @@index([status])
+  @@index([departmentId])
+  @@index([tenantId])
+}
+
+model Attendance {
+  id         Int      @id @default(autoincrement())
+  tenantId   Int?
+  date       DateTime
+  status     String   @default("present") // present | absent | leave | late
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId Int
+
+  @@unique([tenantId, employeeId, date])
+  @@index([date])
+  @@index([tenantId])
+}
+
+model Payslip {
+  id         Int      @id @default(autoincrement())
+  tenantId   Int?
+  month      Int      // 1-12
+  year       Int
+  basic      Int      @default(0)
+  earnings   Int      @default(0)
+  deductions Int      @default(0)
+  net        Int      @default(0)
+  status     String   @default("unpaid") // unpaid | paid
+  note       String?
+  createdAt  DateTime @default(now())
+
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId Int
+
+  @@unique([tenantId, employeeId, month, year])
+  @@index([month, year])
+  @@index([tenantId])
+}
+
+// ---- Network Diagram ----
+// POP = Point of Presence (node): datacenter, pop, tower, switch ityadi
+model NetworkPop {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int?
+  name      String
+  type      String   @default("pop") // datacenter | pop | tower | switch
+  lat       Float?
+  lng       Float?
+  address   String?
+  capacity  Int      @default(0)
+  status    String   @default("online") // online | offline
+  createdAt DateTime @default(now())
+
+  clients     Client[]
+  items       PopItem[]
+  connFrom    NetworkConnection[] @relation("ConnFrom")
+  connTo      NetworkConnection[] @relation("ConnTo")
+
+  @@index([type])
+  @@index([tenantId])
+}
+
+// Node-to-node link (edge)
+model NetworkConnection {
+  id        Int        @id @default(autoincrement())
+  tenantId  Int?
+  type      String     @default("fiber") // fiber | wireless | utp
+  bandwidth String?    // e.g. "10 Gbps"
+  note      String?
+  from      NetworkPop @relation("ConnFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  fromId    Int
+  to        NetworkPop @relation("ConnTo", fields: [toId], references: [id], onDelete: Cascade)
+  toId      Int
+
+  @@index([fromId])
+  @@index([toId])
+  @@index([tenantId])
+}
+
+// Distributed Inventory Items — kon POP e ki equipment deploy kora
+model PopItem {
+  id    Int        @id @default(autoincrement())
+  tenantId Int?
+  name  String
+  qty   Int        @default(1)
+  note  String?
+  pop   NetworkPop @relation(fields: [popId], references: [id], onDelete: Cascade)
+  popId Int
+
+  @@index([popId])
+  @@index([tenantId])
+}
+
+// ---- Leave Management ----
+model LeaveCategory {
+  id           Int                @id @default(autoincrement())
+  tenantId     Int?
+  name         String
+  note         String?
+  setups       LeaveSetup[]
+  applications LeaveApplication[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model LeaveSetup {
+  id          Int           @id @default(autoincrement())
+  tenantId    Int?
+  daysPerYear Int           @default(0)
+  note        String?
+  category    LeaveCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId  Int
+
+  @@unique([tenantId, categoryId])
+  @@index([tenantId])
+}
+
+model LeaveApplication {
+  id         Int           @id @default(autoincrement())
+  tenantId   Int?
+  fromDate   DateTime
+  toDate     DateTime
+  days       Int           @default(1)
+  reason     String?
+  status     String        @default("pending") // pending | approved | rejected
+  createdAt  DateTime      @default(now())
+  employee   Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId Int
+  category   LeaveCategory @relation(fields: [categoryId], references: [id])
+  categoryId Int
+
+  @@index([status])
+  @@index([employeeId])
+  @@index([tenantId])
+}
+
+// ---- MAC Reseller (prepaid reseller system) ----
+model MacPackage {
+  id       Int     @id @default(autoincrement())
+  tenantId Int?
+  name     String
+  speed    String?
+  price    Int     @default(0)
+  validity Int     @default(30)
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model Tariff {
+  id         Int     @id @default(autoincrement())
+  tenantId   Int?
+  name       String
+  commission Int     @default(0) // percent
+  note       String?
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model MacReseller {
+  id         Int               @id @default(autoincrement())
+  tenantId   Int?
+  name       String
+  phone      String?
+  email      String?
+  balance    Int               @default(0) // prepaid balance
+  commission Int               @default(0) // percent
+  active     Boolean           @default(true)
+  createdAt  DateTime          @default(now())
+  fundings   ResellerFunding[]
+
+  @@index([active])
+  @@index([tenantId])
+}
+
+model ResellerFunding {
+  id         Int         @id @default(autoincrement())
+  tenantId   Int?
+  amount     Int
+  method     String      @default("Cash")
+  note       String?
+  date       DateTime    @default(now())
+  reseller   MacReseller @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+  resellerId Int
+
+  @@index([resellerId])
+  @@index([tenantId])
+}
+
+// Client payment-gateway (online) payment log
+model PgwPayment {
+  id       Int      @id @default(autoincrement())
+  tenantId Int?
+  amount   Int
+  gateway  String   @default("bKash") // bKash | Nagad | Rocket | SSLCommerz | Card
+  txnId    String?
+  status   String   @default("success") // success | pending | failed
+  note     String?
+  clientId Int?     // soft link
+  date     DateTime @default(now())
+
+  @@index([status])
+  @@index([date])
+  @@index([tenantId])
+}
+
+// ---- Events & Holidays ----
+model HolidayEvent {
+  id        Int       @id @default(autoincrement())
+  tenantId  Int?
+  title     String
+  type      String    @default("holiday") // holiday | event
+  fromDate  DateTime
+  toDate    DateTime?
+  note      String?
+  createdAt DateTime  @default(now())
+
+  @@index([fromDate])
+  @@index([tenantId])
+}
+
+// ---- Bandwidth Buy (upstream bandwidth purchase) ----
+model BwItemCategory {
+  id    Int      @id @default(autoincrement())
+  tenantId Int?
+  name  String
+  note  String?
+  items BwItem[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model BwItem {
+  id         Int             @id @default(autoincrement())
+  tenantId   Int?
+  name       String
+  unit       String?
+  note       String?
+  category   BwItemCategory? @relation(fields: [categoryId], references: [id])
+  categoryId Int?
+  bills      BwPurchaseBill[]
+
+  @@unique([tenantId, name])
+  @@index([categoryId])
+  @@index([tenantId])
+}
+
+model BwProvider {
+  id      Int              @id @default(autoincrement())
+  tenantId Int?
+  name    String
+  phone   String?
+  email   String?
+  address String?
+  note    String?
+  bills   BwPurchaseBill[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model BwPurchaseBill {
+  id         Int        @id @default(autoincrement())
+  tenantId   Int?
+  amount     Int
+  bandwidth  String?    // e.g. "10 Gbps"
+  status     String     @default("unpaid") // unpaid | paid
+  note       String?
+  date       DateTime   @default(now())
+  provider   BwProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  providerId Int
+  item       BwItem?    @relation(fields: [itemId], references: [id])
+  itemId     Int?
+
+  @@index([providerId])
+  @@index([status])
+  @@index([tenantId])
+}
+
+// ---- Task Management ----
+model TaskCategory {
+  id    Int    @id @default(autoincrement())
+  tenantId Int?
+  name  String
+  note  String?
+  tasks Task[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model Task {
+  id         Int           @id @default(autoincrement())
+  tenantId   Int?
+  title      String
+  priority   String        @default("medium") // high | medium | low
+  status     String        @default("pending") // pending | processing | done
+  assignee   String?
+  dueDate    DateTime?
+  note       String?
+  createdAt  DateTime      @default(now())
+  category   TaskCategory? @relation(fields: [categoryId], references: [id])
+  categoryId Int?
+
+  @@index([status])
+  @@index([categoryId])
+  @@index([tenantId])
+}
+
+// ---- Bandwidth Sale (B2B bandwidth bikri reseller/buyer-der kache) ----
+model BwBuyer {
+  id         Int             @id @default(autoincrement())
+  tenantId   Int?
+  name       String
+  phone      String?
+  email      String?
+  note       String?
+  invoices   BwSaleInvoice[]
+  recurrings BwRecurring[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model BwSaleInvoice {
+  id      Int      @id @default(autoincrement())
+  tenantId Int?
+  amount  Int
+  period  String?  // e.g. "October 2026"
+  status  String   @default("unpaid") // unpaid | paid
+  note    String?
+  date    DateTime @default(now())
+  buyer   BwBuyer  @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  buyerId Int
+
+  @@index([buyerId])
+  @@index([status])
+  @@index([tenantId])
+}
+
+model BwRecurring {
+  id      Int     @id @default(autoincrement())
+  tenantId Int?
+  amount  Int
+  active  Boolean @default(true)
+  note    String?
+  buyer   BwBuyer @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  buyerId Int
+
+  @@index([buyerId])
+  @@index([tenantId])
+}
+
+model BwSalePayment {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int?
+  amount    Int
+  method    String   @default("Cash")
+  date      DateTime @default(now())
+  buyerId   Int
+  invoiceId Int?
+
+  @@index([buyerId])
+  @@index([tenantId])
+}
+
+// ---- Purchase (procurement) ----
+model Vendor {
+  id        Int            @id @default(autoincrement())
+  tenantId  Int?
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  note      String?
+  purchases Purchase[]
+  bills     PurchaseBill[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model Requisition {
+  id          Int      @id @default(autoincrement())
+  tenantId    Int?
+  item        String
+  qty         Int      @default(1)
+  requestedBy String?
+  status      String   @default("pending") // pending | approved | rejected
+  note        String?
+  date        DateTime @default(now())
+
+  @@index([status])
+  @@index([tenantId])
+}
+
+model Purchase {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int?
+  item      String
+  qty       Int      @default(1)
+  unitPrice Int      @default(0)
+  total     Int      @default(0)
+  note      String?
+  date      DateTime @default(now())
+  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendorId  Int
+
+  @@index([vendorId])
+  @@index([tenantId])
+}
+
+model PurchaseBill {
+  id       Int      @id @default(autoincrement())
+  tenantId Int?
+  amount   Int
+  status   String   @default("unpaid") // unpaid | paid
+  note     String?
+  date     DateTime @default(now())
+  vendor   Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendorId Int
+
+  @@index([vendorId])
+  @@index([status])
+  @@index([tenantId])
+}
+
+// ---- Sales & Service (client-facing product/service/installation sale) ----
+model SaleEntry {
+  id         Int      @id @default(autoincrement())
+  tenantId   Int?
+  kind       String   // product | service | installation
+  clientId   Int?     // soft link
+  clientName String?
+  item       String?
+  qty        Int      @default(1)
+  unitPrice  Int      @default(0)
+  amount     Int      @default(0)
+  status     String   @default("unpaid") // unpaid | paid
+  note       String?
+  date       DateTime @default(now())
+
+  @@index([kind])
+  @@index([status])
+  @@index([tenantId])
+}
+
+// ---- Inventory ----
+model InvUnit {
+  id    Int       @id @default(autoincrement())
+  tenantId Int?
+  name  String
+  items InvItem[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model StoreLocation {
+  id     Int        @id @default(autoincrement())
+  tenantId Int?
+  name   String
+  note   String?
+  stocks InvStock[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model InvCategory {
+  id    Int       @id @default(autoincrement())
+  tenantId Int?
+  name  String
+  note  String?
+  items InvItem[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model InvItem {
+  id         Int          @id @default(autoincrement())
+  tenantId   Int?
+  name       String
+  note       String?
+  category   InvCategory? @relation(fields: [categoryId], references: [id])
+  categoryId Int?
+  unit       InvUnit?     @relation(fields: [unitId], references: [id])
+  unitId     Int?
+  stocks     InvStock[]
+
+  @@unique([tenantId, name])
+  @@index([categoryId])
+  @@index([tenantId])
+}
+
+model InvStock {
+  id         Int            @id @default(autoincrement())
+  tenantId   Int?
+  qty        Int
+  type       String         @default("in") // in | out
+  note       String?
+  date       DateTime       @default(now())
+  item       InvItem        @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId     Int
+  location   StoreLocation? @relation(fields: [locationId], references: [id])
+  locationId Int?
+
+  @@index([itemId])
+  @@index([tenantId])
+}
+
+// ---- Assets ----
+model Asset {
+  id           Int       @id @default(autoincrement())
+  tenantId     Int?
+  name         String
+  category     String?
+  qty          Int       @default(1)
+  value        Int       @default(0)
+  status       String    @default("active") // active | destroyed
+  purchaseDate DateTime?
+  note         String?
+  createdAt    DateTime  @default(now())
+
+  @@index([status])
+  @@index([tenantId])
+}
+
+// ---- Accounting (double-entry) ----
+model Account {
+  id    Int           @id @default(autoincrement())
+  tenantId Int?
+  code  String
+  name  String
+  type  String // asset | liability | equity | income | expense
+  note  String?
+  lines JournalLine[]
+
+  @@unique([tenantId, code])
+  @@index([type])
+  @@index([tenantId])
+}
+
+model JournalEntry {
+  id        Int           @id @default(autoincrement())
+  tenantId  Int?
+  date      DateTime      @default(now())
+  memo      String?
+  reference String?
+  createdAt DateTime      @default(now())
+  lines     JournalLine[]
+
+  @@index([date])
+  @@index([tenantId])
+}
+
+model JournalLine {
+  id        Int          @id @default(autoincrement())
+  tenantId  Int?
+  debit     Int          @default(0)
+  credit    Int          @default(0)
+  note      String?
+  entry     JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  entryId   Int
+  account   Account      @relation(fields: [accountId], references: [id])
+  accountId Int
+
+  @@index([entryId])
+  @@index([accountId])
+  @@index([tenantId])
+}
+
+// ---- SMS Service ----
+model SmsGateway {
+  id        Int     @id @default(autoincrement())
+  tenantId  Int?
+  provider  String  @default("BulkSMSBD")
+  apiUrl    String?
+  apiKeyEnc String? // stored, never returned raw
+  senderId  String?
+  active    Boolean @default(false)
+
+  @@index([tenantId])
+}
+
+model SmsTemplate {
+  id   Int    @id @default(autoincrement())
+  tenantId Int?
+  name String
+  body String
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model SmsGroup {
+  id         Int            @id @default(autoincrement())
+  tenantId   Int?
+  name       String
+  recipients SmsRecipient[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model SmsRecipient {
+  id      Int      @id @default(autoincrement())
+  tenantId Int?
+  name    String?
+  phone   String
+  group   SmsGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId Int
+
+  @@index([groupId])
+  @@index([tenantId])
+}
+
+model SmsMessage {
+  id     Int      @id @default(autoincrement())
+  tenantId Int?
+  to     String
+  body   String
+  status String   @default("queued") // queued | sent | simulated | failed
+  date   DateTime @default(now())
+
+  @@index([date])
+  @@index([tenantId])
+}
+
+// ---- Affiliation ----
+model Affiliate {
+  id         Int      @id @default(autoincrement())
+  tenantId   Int?
+  name       String
+  phone      String?
+  email      String?
+  commission Int      @default(0) // percent
+  referrals  Int      @default(0)
+  earned     Int      @default(0)
+  active     Boolean  @default(true)
+  note       String?
+  createdAt  DateTime @default(now())
+
+  @@index([active])
+  @@index([tenantId])
+}
+
+// ---- System: Activity Log ----
+model ActivityLog {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int?
+  userId    Int?
+  userName  String?
+  role      String?
+  action    String   // e.g. "POST /api/clients"
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([tenantId])
+}

@@ -1,0 +1,24 @@
+# ISPora API — Render Blueprint
+# Render dashboard-e: New → Blueprint → ei repo select korle auto-detect hobe.
+# Deploy-er age env var 2 ta dashboard-e set korte hobe (neeche sync: false gula):
+#   DATABASE_URL  = Neon er postgres connection string
+#   CLIENT_ORIGIN = frontend er URL (jemon https://ispora.pages.dev)
+# JWT_SECRET auto-generate hobe (generate: true).
+services:
+  - type: web
+    name: ispora-api
+    runtime: node
+    rootDir: server
+    plan: free
+    buildCommand: npm ci && npx prisma generate && npx prisma db push --accept-data-loss
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: CLIENT_ORIGIN
+        sync: false
+      - key: JWT_SECRET
+        generate: true
+      - key: NODE_ENV
+        value: production
