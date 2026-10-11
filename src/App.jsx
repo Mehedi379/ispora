@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
@@ -239,6 +239,9 @@ export default function App() {
               <Suspense fallback={<Spinner />}>
                 <Routes location={location}>
                   <Route path="/" element={user?.isPlatformOwner ? <PlatformOnly><PlatformDashboard /></PlatformOnly> : <Dashboard />} />
+                  {/* Login/signup URL-e thaka obosthay login korle authed app-e oi path 404 dekhato — tai home-e pathai */}
+                  <Route path="/login" element={<Navigate to="/" replace />} />
+                  <Route path="/signup" element={<Navigate to="/" replace />} />
                   <Route path="/platform/dashboard" element={<PlatformOnly><PlatformDashboard /></PlatformOnly>} />
                   <Route path="/platform/settings" element={<PlatformOnly><PlatformSettings /></PlatformOnly>} />
                   <Route path="/platform/support" element={<PlatformOnly><PlatformSupport /></PlatformOnly>} />
