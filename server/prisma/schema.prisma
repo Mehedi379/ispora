@@ -396,6 +396,32 @@ model Client {
   phone      String
   pppoe      String
   address    String?
+  // Personal information (competitor-style client profile)
+  email        String?
+  occupation   String?
+  remarks      String?
+  nid          String?
+  gender       String?   // Male | Female | Other
+  dob          DateTime?
+  fatherName   String?
+  motherName   String?
+  photo        String?   // profile picture URL
+  // Contact information
+  presentAddress   String?
+  permanentAddress String?
+  district     String?
+  upazila      String?
+  roadNo       String?
+  houseNo      String?
+  mapLat       String?
+  mapLng       String?
+  facebook     String?
+  // Network/product + service extras
+  deviceMac    String?
+  referenceBy  String?
+  isVip        Boolean   @default(false)
+  monthlyBill  Int?
+  joiningDate  DateTime?
   status     String   @default("active") // active | due | expired | suspended
   online     Boolean  @default(true)
   due        Int      @default(0)

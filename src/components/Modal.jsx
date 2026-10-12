@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 
 export default function Modal({ open, onClose, title, subtitle, children, footer, size = "md" }) {
-  const w = { sm: "max-w-md", md: "max-w-lg", lg: "max-w-2xl" }[size];
+  const w = { sm: "max-w-md", md: "max-w-lg", lg: "max-w-2xl", xl: "max-w-4xl" }[size];
   // Escape diye close — keyboard user fashye thakbe na
   useEffect(() => {
     if (!open) return;

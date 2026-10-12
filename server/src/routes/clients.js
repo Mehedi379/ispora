@@ -14,6 +14,29 @@ const shape = (c) => ({
   phone: c.phone,
   pppoe: c.pppoe,
   address: c.address || "",
+  email: c.email || "",
+  occupation: c.occupation || "",
+  remarks: c.remarks || "",
+  nid: c.nid || "",
+  gender: c.gender || "",
+  dob: c.dob ? ymd(c.dob) : null,
+  fatherName: c.fatherName || "",
+  motherName: c.motherName || "",
+  photo: c.photo || "",
+  presentAddress: c.presentAddress || "",
+  permanentAddress: c.permanentAddress || "",
+  district: c.district || "",
+  upazila: c.upazila || "",
+  roadNo: c.roadNo || "",
+  houseNo: c.houseNo || "",
+  mapLat: c.mapLat || "",
+  mapLng: c.mapLng || "",
+  facebook: c.facebook || "",
+  deviceMac: c.deviceMac || "",
+  referenceBy: c.referenceBy || "",
+  isVip: !!c.isVip,
+  monthlyBill: c.monthlyBill ?? null,
+  joiningDate: c.joiningDate ? ymd(c.joiningDate) : null,
   zone: c.zone?.name || "",
   package: c.package?.name || "",
   speed: c.package?.speed || "",
@@ -52,6 +75,29 @@ async function resolveRefs(body, role = "admin") {
   if (body.phone != null) data.phone = clean(body.phone, 20);
   if (body.pppoe != null) data.pppoe = clean(body.pppoe, 60);
   if (body.address != null) data.address = clean(body.address, 200);
+  // Personal / contact / extra fields (sob optional)
+  for (const [key, max] of [
+    ["email", 120], ["occupation", 80], ["remarks", 500], ["nid", 40],
+    ["fatherName", 120], ["motherName", 120], ["photo", 300],
+    ["presentAddress", 300], ["permanentAddress", 300], ["district", 80], ["upazila", 80],
+    ["roadNo", 60], ["houseNo", 60], ["mapLat", 40], ["mapLng", 40], ["facebook", 200],
+    ["deviceMac", 60], ["referenceBy", 120],
+  ]) {
+    if (body[key] !== undefined) data[key] = clean(body[key], max);
+  }
+  if (body.gender !== undefined) data.gender = ["Male", "Female", "Other"].includes(body.gender) ? body.gender : null;
+  if (body.isVip !== undefined) data.isVip = !!body.isVip;
+  if (body.monthlyBill !== undefined) {
+    const m = Number(body.monthlyBill);
+    data.monthlyBill = Number.isFinite(m) && m >= 0 ? Math.round(m) : null;
+  }
+  for (const key of ["dob", "joiningDate"]) {
+    if (body[key] !== undefined) {
+      const d = body[key] ? new Date(body[key]) : null;
+      if (d && Number.isNaN(d.getTime())) return null;
+      data[key] = d;
+    }
+  }
   if (body.status != null && STATUSES.includes(body.status)) data.status = body.status;
   // online direct shudhu admin set korte pare — reseller toggle endpoint use korbe
   // (tarpor o expired/suspended e ON hobe na, niche guard + toggle e ache)

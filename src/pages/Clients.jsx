@@ -236,7 +236,7 @@ export default function Clients({ filterStatus }) {
         onClose={() => setEditing(null)}
         title={editing?.id ? "Edit Customer" : "Add Customer"}
         subtitle={editing?.id ? editing.name : "Notun customer er tottho din"}
-        size="lg"
+        size="xl"
         footer={
           <>
             <button onClick={() => setEditing(null)} className="btn-ghost">Cancel</button>
