@@ -112,10 +112,10 @@ const AccountManage = lazy(() => import("./pages/AccountManage"));
 const CONFIG = [
   { path: "zones", title: "Zone" },
   { path: "sub-zones", title: "Sub Zone", parent: { entity: "zones", key: "zoneId", rel: "zone", label: "Zone" } },
-  { path: "boxes", title: "Box", extra: ["code", "capacity"] },
-  { path: "connection-types", title: "Connection Type" },
+  { path: "boxes", title: "Box", extra: ["code", "capacity"], parent: { entity: "sub-zones", key: "subZoneId", rel: "subZone", label: "Sub Zone" }, grand: { rel: "zone", label: "Zone" } },
+  { path: "connection-types", title: "Connection Type", hasActive: true },
   { path: "client-types", title: "Client Type" },
-  { path: "protocol-types", title: "Protocol Type" },
+  { path: "protocol-types", title: "Protocol Type", hasActive: true },
   { path: "billing-statuses", title: "Billing Status" },
   { path: "districts", title: "District" },
   { path: "upazilas", title: "Upazila", parent: { entity: "districts", key: "districtId", rel: "district", label: "District" } },
@@ -258,7 +258,7 @@ export default function App() {
                   <Route path="/clients/deleted" element={<AdminOnly><DeletedCustomers /></AdminOnly>} />
                   {CONFIG.map((c) => (
                     <Route key={c.path} path={`/config/${c.path}`}
-                      element={<AdminOnly><ConfigEntity title={c.title} entity={c.path} parent={c.parent} extra={c.extra} /></AdminOnly>} />
+                      element={<AdminOnly><ConfigEntity title={c.title} entity={c.path} parent={c.parent} grand={c.grand} extra={c.extra} hasActive={c.hasActive} /></AdminOnly>} />
                   ))}
                   <Route path="/vas/config" element={<AdminOnly><VasConfig /></AdminOnly>} />
                   <Route path="/vas/transactions" element={<AdminOnly><VasTransactions /></AdminOnly>} />

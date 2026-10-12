@@ -12,7 +12,7 @@ import { input } from "../ui";
 //   entity: API slug (jemon "sub-zones")
 //   parent: { entity, key, label } — SubZone->Zone hole { entity:"zones", key:"zoneId", label:"Zone" }
 //   extra: ["code","capacity"] — Box er jonno
-export default function ConfigEntity({ title, subtitle, entity, parent, extra = [] }) {
+export default function ConfigEntity({ title, subtitle, entity, parent, grand, extra = [], hasActive }) {
   const { user, notify } = useStore();
   const isAdmin = user?.role === "admin";
   const [rows, setRows] = useState([]);
@@ -42,11 +42,17 @@ export default function ConfigEntity({ title, subtitle, entity, parent, extra = 
 
   const openNew = () => { setForm({}); setErr(""); setEditing({}); };
   const openEdit = (row) => {
-    const f = { name: row.name };
+    const f = { name: row.name, details: row.details || "" };
     if (parent) f[parent.key] = row[parent.key] || "";
     if (extra.includes("code")) f.code = row.code || "";
     if (extra.includes("capacity")) f.capacity = row.capacity ?? 0;
+    if (hasActive) f.active = row.active ?? true;
     setForm(f); setErr(""); setEditing(row);
+  };
+
+  const toggleActive = async (row) => {
+    try { await api.updateConfig(entity, row.id, { active: !row.active }); await load(); }
+    catch (e) { notify(e.message); }
   };
 
   const save = async () => {
@@ -95,8 +101,11 @@ export default function ConfigEntity({ title, subtitle, entity, parent, extra = 
                 <th className="px-5 py-3 font-semibold">#</th>
                 <th className="px-5 py-3 font-semibold">Name</th>
                 {parent && <th className="px-5 py-3 font-semibold">{parent.label}</th>}
+                {grand && <th className="px-5 py-3 font-semibold">{grand.label}</th>}
                 {extra.includes("code") && <th className="px-5 py-3 font-semibold">Code</th>}
                 {extra.includes("capacity") && <th className="px-5 py-3 font-semibold">Capacity</th>}
+                <th className="px-5 py-3 font-semibold">Details</th>
+                {hasActive && <th className="px-5 py-3 font-semibold">Active</th>}
                 {isAdmin && <th className="px-5 py-3 text-right font-semibold">Action</th>}
               </tr>
             </thead>
@@ -108,8 +117,18 @@ export default function ConfigEntity({ title, subtitle, entity, parent, extra = 
                   <td className="px-5 py-3 text-slate-400">{i + 1}</td>
                   <td className="px-5 py-3 font-medium text-slate-700 dark:text-slate-200">{row.name}</td>
                   {parent && <td className="px-5 py-3 text-slate-500 dark:text-slate-400">{row[parent.rel] || "—"}</td>}
+                  {grand && <td className="px-5 py-3 text-slate-500 dark:text-slate-400">{row[grand.rel] || "—"}</td>}
                   {extra.includes("code") && <td className="px-5 py-3 text-slate-500 dark:text-slate-400">{row.code || "—"}</td>}
                   {extra.includes("capacity") && <td className="px-5 py-3 text-slate-500 dark:text-slate-400">{row.capacity || 0}</td>}
+                  <td className="px-5 py-3 text-slate-500 dark:text-slate-400">{row.details || "—"}</td>
+                  {hasActive && (
+                    <td className="px-5 py-3">
+                      <button onClick={() => isAdmin && toggleActive(row)} disabled={!isAdmin}
+                        className={`relative h-6 w-11 rounded-full transition ${row.active ? "bg-emerald-500" : "bg-slate-300 dark:bg-white/15"} ${isAdmin ? "cursor-pointer" : "cursor-default opacity-70"}`}>
+                        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${row.active ? "left-[22px]" : "left-0.5"}`} />
+                      </button>
+                    </td>
+                  )}
                   {isAdmin && (
                     <td className="px-5 py-3">
                       <div className="flex justify-end gap-1">
@@ -121,7 +140,7 @@ export default function ConfigEntity({ title, subtitle, entity, parent, extra = 
                 </motion.tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={6} className="py-12 text-center text-sm text-slate-400">Kono {title.toLowerCase()} nei.</td></tr>
+                <tr><td colSpan={9} className="py-12 text-center text-sm text-slate-400">Kono {title.toLowerCase()} nei.</td></tr>
               )}
             </tbody>
           </table>
@@ -151,6 +170,14 @@ export default function ConfigEntity({ title, subtitle, entity, parent, extra = 
           {extra.includes("capacity") && (
             <label className="block"><span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Capacity</span>
               <input className={input} type="number" value={form.capacity ?? ""} onChange={(e) => setForm({ ...form, capacity: e.target.value })} placeholder="e.g. 16" /></label>
+          )}
+          <label className="block"><span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Details</span>
+            <textarea className={`${input} min-h-[70px]`} value={form.details || ""} onChange={(e) => setForm({ ...form, details: e.target.value })} placeholder="Details / note (optional)" /></label>
+          {hasActive && (
+            <label className="flex items-center gap-2.5 text-sm text-slate-600 dark:text-slate-300">
+              <input type="checkbox" checked={form.active ?? true} onChange={(e) => setForm({ ...form, active: e.target.checked })} className="h-4 w-4 accent-emerald-500" />
+              Active
+            </label>
           )}
         </div>
       </Modal>

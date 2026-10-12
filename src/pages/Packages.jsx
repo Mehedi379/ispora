@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Wifi, Pencil, Trash2, Plus, Loader2 } from "lucide-react";
 import Modal from "../components/Modal";
+import Dropdown from "../components/Dropdown";
 import { useStore } from "../store";
 import { api } from "../api";
 
@@ -14,7 +15,7 @@ export default function Packages() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null); // pkg obj or {} for new
   const [toDelete, setToDelete] = useState(null);
-  const [form, setForm] = useState({ name: "", speed: "", price: "", validity: 30 });
+  const [form, setForm] = useState({ name: "", speed: "", price: "", validity: 30, type: "", vas: "", description: "" });
   const [err, setErr] = useState("");
 
   const load = useCallback(async () => {
@@ -29,8 +30,8 @@ export default function Packages() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const openNew = () => { setForm({ name: "", speed: "", price: "", validity: 30 }); setErr(""); setEditing({}); };
-  const openEdit = (p) => { setForm({ name: p.name, speed: p.speed, price: p.price, validity: p.validity }); setErr(""); setEditing(p); };
+  const openNew = () => { setForm({ name: "", speed: "", price: "", validity: 30, type: "", vas: "", description: "" }); setErr(""); setEditing({}); };
+  const openEdit = (p) => { setForm({ name: p.name, speed: p.speed, price: p.price, validity: p.validity, type: p.type || "", vas: p.vas || "", description: p.description || "" }); setErr(""); setEditing(p); };
 
   const save = async () => {
     setErr("");
@@ -69,8 +70,13 @@ export default function Packages() {
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
               whileHover={{ y: -4 }} className="card group relative overflow-hidden p-6">
               <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gold-500/10 blur-2xl transition group-hover:bg-gold-500/20" />
-              <div className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 text-navy-950 shadow-gold">
-                <Wifi size={22} />
+              <div className="flex items-start justify-between">
+                <div className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 text-navy-950 shadow-gold">
+                  <Wifi size={22} />
+                </div>
+                {p.type && (
+                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${p.type === "Personal" ? "bg-amber-500/15 text-amber-500" : "bg-emerald-500/15 text-emerald-500"}`}>{p.type}</span>
+                )}
               </div>
               <h3 className="mt-4 font-display text-lg font-bold text-slate-800 dark:text-white">{p.name}</h3>
               <p className="text-sm text-slate-400">{p.speed}</p>
@@ -78,6 +84,8 @@ export default function Packages() {
                 <span className="font-display text-3xl font-extrabold gold-text">৳{p.price}</span>
                 <span className="text-sm text-slate-400">/{p.validity}d</span>
               </div>
+              {p.vas && <p className="mt-2 text-xs text-slate-400"><span className="font-semibold text-slate-500 dark:text-slate-300">VAS:</span> {p.vas}</p>}
+              {p.description && <p className="mt-1 text-xs text-slate-400">{p.description}</p>}
               <div className="mt-4 flex items-center justify-between border-t border-slate-100 dark:border-white/5 pt-4">
                 <span className="text-xs text-slate-400">{p.users} active users</span>
                 {isAdmin && (
@@ -100,7 +108,7 @@ export default function Packages() {
           {err && <p className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-500">{err}</p>}
           <label className="block"><span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Name</span>
             <input className={input} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Home Plus" /></label>
-          <label className="block"><span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Speed</span>
+          <label className="block"><span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Speed / Allocated MB</span>
             <input className={input} value={form.speed} onChange={(e) => setForm({ ...form, speed: e.target.value })} placeholder="e.g. 20 Mbps" /></label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block"><span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Price (৳)</span>
@@ -108,6 +116,12 @@ export default function Packages() {
             <label className="block"><span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Validity (days)</span>
               <input className={input} type="number" value={form.validity} onChange={(e) => setForm({ ...form, validity: e.target.value })} placeholder="30" /></label>
           </div>
+          <label className="block"><span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Package Type</span>
+            <Dropdown value={form.type || ""} options={[{ value: "", label: "— None —" }, { value: "Personal", label: "Personal" }, { value: "Business", label: "Business" }]} onChange={(v) => setForm({ ...form, type: v })} /></label>
+          <label className="block"><span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">VAS</span>
+            <input className={input} value={form.vas} onChange={(e) => setForm({ ...form, vas: e.target.value })} placeholder="Value-added service (optional)" /></label>
+          <label className="block"><span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Description</span>
+            <textarea className={`${input} min-h-[70px]`} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Description (optional)" /></label>
         </div>
       </Modal>
 

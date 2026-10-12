@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Users, UserCheck, Wallet, AlertTriangle, TrendingUp, ArrowUpRight, ArrowDownRight, Wifi, WifiOff, Loader2,
+  Calendar, CheckCircle2, Percent, HandCoins, Coins, PiggyBank, Receipt, Banknote, Server, DollarSign,
+  MessageSquare, ShoppingCart, Ticket, ListTodo, RefreshCw,
 } from "lucide-react";
 import { useStore } from "../store";
 import { api } from "../api";
@@ -17,6 +19,7 @@ export default function Dashboard() {
   const { clients, notify } = useStore();
   const [stats, setStats] = useState(null);
   const [dash, setDash] = useState(null);
+  const [ov, setOv] = useState(null);
   const [payments, setPayments] = useState([]);
   const [err, setErr] = useState("");
   const [reload, setReload] = useState(0);
@@ -26,9 +29,9 @@ export default function Dashboard() {
     let alive = true;
     (async () => {
       try {
-        const [st, pays, dsh] = await Promise.all([api.stats(), api.listPayments(), api.statsDashboard().catch(() => null)]);
+        const [st, pays, dsh, over] = await Promise.all([api.stats(), api.listPayments(), api.statsDashboard().catch(() => null), api.statsOverview().catch(() => null)]);
         if (!alive) return;
-        setStats(st); setPayments(pays); setDash(dsh); setErr("");
+        setStats(st); setPayments(pays); setDash(dsh); setOv(over); setErr("");
       } catch (e) {
         // Age ignore chilo → stats null thaklei chirokal spinner, retry upay-i chilo na
         if (!alive) return;
@@ -83,6 +86,39 @@ export default function Dashboard() {
     { label: "Average", value: avg, color: "text-sky-500" },
     { label: "Worst", value: worst, color: "text-rose-500" },
   ];
+
+  // Competitor-style status cards (ticket/task) + financial tiles
+  const statusCards = dash ? [
+    { label: "Pending Tickets", value: dash.pendingTickets, sub: "Support tickets that are pending", icon: Ticket, grad: "from-rose-500 to-red-600" },
+    { label: "Processing Tickets", value: dash.processingTickets, sub: "Support tickets that are processing", icon: RefreshCw, grad: "from-amber-500 to-orange-600" },
+    { label: "Pending Task", value: dash.pendingTasks, sub: "Created tasks that are pending", icon: ListTodo, grad: "from-rose-500 to-red-600" },
+    { label: "Processing Task", value: dash.processingTasks, sub: "Tasks that are processing", icon: RefreshCw, grad: "from-amber-500 to-orange-600" },
+  ] : [];
+
+  const G = { sky: "from-sky-500 to-blue-600", teal: "from-teal-500 to-emerald-600", violet: "from-violet-500 to-purple-600", slate: "from-slate-600 to-slate-800" };
+  const financialTiles = ov ? [
+    { label: "Monthly Bill", value: ov.monthlyBill, sub: "Current month total customer bill", icon: Calendar, grad: G.sky },
+    { label: "Collected Bill", value: ov.collectedBill, sub: "Current month total received", icon: CheckCircle2, grad: G.teal },
+    { label: "Discount", value: ov.discount, sub: "Current month total discount", icon: Percent, grad: G.violet },
+    { label: "Total Due", value: ov.totalDue, sub: "Total due bill of client", icon: AlertTriangle, grad: G.slate },
+    { label: "Service Sales Invoice", value: ov.serviceSalesInvoice, sub: "Installation fee & service sales", icon: HandCoins, grad: G.sky },
+    { label: "Product Sales Invoice", value: ov.productSalesInvoice, sub: "Current month product sales", icon: TrendingUp, grad: G.teal },
+    { label: "Income", value: ov.income, sub: "Current month total income", icon: ArrowUpRight, grad: G.violet },
+    { label: "Expense", value: ov.expense, sub: "Current month total expense", icon: ArrowDownRight, grad: G.slate },
+    { label: "Credited Amount", value: ov.creditedAmount, sub: "Monthly credited amount of POPs", icon: Coins, grad: G.sky },
+    { label: "POP Fund", value: ov.popFund, sub: "Monthly given fund to POPs", icon: PiggyBank, grad: G.teal },
+    { label: "POP Bill", value: ov.popBill, sub: "Monthly received amount from POPs", icon: Receipt, grad: G.violet },
+    { label: "Receivable Amount", value: ov.receivableAmount, sub: "Monthly receivable from POPs", icon: Banknote, grad: G.slate },
+    { label: "B.Width Provider Bill", value: ov.bwProviderBill, sub: "Monthly paid to B.Width providers", icon: Server, grad: G.sky },
+    { label: "B.Width Provider Due", value: ov.bwProviderDue, sub: "All over B.Width providers payable", icon: Server, grad: G.teal },
+    { label: "B.Width POP Bill", value: ov.bwPopBill, sub: "Monthly received from B.Width POPs", icon: Server, grad: G.violet },
+    { label: "Paid Salary", value: ov.paidSalary, sub: "Current month total paid salary", icon: DollarSign, grad: G.slate },
+    { label: "SMS Balance", value: ov.smsBalance, sub: "This is your total SMS balance", icon: MessageSquare, grad: G.sky, raw: true },
+    { label: "Purchase Payable Due", value: ov.purchasePayableDue, sub: "All over inventory purchase payable", icon: ShoppingCart, grad: G.teal },
+    { label: "Purchase Paid Amount", value: ov.purchasePaidAmount, sub: "Current month inventory purchase paid", icon: ShoppingCart, grad: G.violet },
+    { label: "Cash On Hand", value: ov.cashOnHand, sub: "Current month total CashOnHand", icon: Wallet, grad: G.slate },
+  ] : [];
+  const maxNew = ov ? Math.max(...ov.monthlyNewClient.map((m) => m.count), 1) : 1;
 
   return (
     <div className="space-y-6">
@@ -141,6 +177,87 @@ export default function Dashboard() {
               <p className="mt-0.5 text-[11px] text-slate-400">{label}</p>
             </motion.div>
           ))}
+        </div>
+      )}
+
+      {statusCards.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {statusCards.map((s, i) => (
+            <motion.div key={s.label} custom={i} variants={fade} initial="hidden" animate="show"
+              className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${s.grad} p-5 text-white shadow-lg`}>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-semibold opacity-90">{s.label}</p>
+                  <p className="mt-1 font-display text-3xl font-bold">{s.value ?? 0}</p>
+                </div>
+                <s.icon size={26} className="opacity-80" />
+              </div>
+              <p className="mt-3 text-[11px] opacity-80">{s.sub}</p>
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      {financialTiles.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {financialTiles.map((t, i) => (
+            <motion.div key={t.label} custom={i} variants={fade} initial="hidden" animate="show"
+              className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${t.grad} p-4 text-white shadow-lg`}>
+              <div className="flex items-center gap-3">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/20"><t.icon size={20} /></div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium opacity-90">{t.label}</p>
+                  <p className="font-display text-xl font-bold">{t.raw ? Number(t.value || 0).toLocaleString() : fmt(t.value)}</p>
+                </div>
+              </div>
+              <p className="mt-2.5 truncate text-[11px] opacity-80">{t.sub}</p>
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      {ov && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <motion.div custom={0} variants={fade} initial="hidden" animate="show" className="card p-5 lg:col-span-2">
+            <h3 className="font-display font-semibold text-slate-800 dark:text-white">Monthly New Client</h3>
+            <p className="text-xs text-slate-400">Last 12 months</p>
+            <div className="mt-5 flex h-48 items-end gap-2">
+              {ov.monthlyNewClient.map((m, i) => (
+                <div key={i} className="group relative flex flex-1 flex-col items-center gap-2">
+                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">{m.count || ""}</span>
+                  <motion.div
+                    initial={{ height: 0 }} animate={{ height: `${Math.max((m.count / maxNew) * 100, 2)}%` }}
+                    transition={{ delay: 0.2 + i * 0.04, duration: 0.5, ease: "easeOut" }}
+                    className="w-full rounded-t-lg bg-gradient-to-t from-sky-600 to-sky-400"
+                  />
+                  <span className="text-[10px] text-slate-400">{m.label}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          <motion.div custom={1} variants={fade} initial="hidden" animate="show" className="card overflow-hidden p-0">
+            <div className="bg-gradient-to-r from-navy-800 to-navy-900 px-5 py-3.5">
+              <h3 className="font-display font-semibold text-white">Top 20 Unpaid Client</h3>
+            </div>
+            <div className="max-h-72 overflow-y-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="sticky top-0 bg-slate-50 text-xs uppercase text-slate-400 dark:bg-white/5">
+                  <tr><th className="px-4 py-2.5">User</th><th className="px-4 py-2.5">Mobile</th><th className="px-4 py-2.5 text-right">Due</th></tr>
+                </thead>
+                <tbody>
+                  {ov.topUnpaid.map((c) => (
+                    <tr key={c.id} className="border-t border-slate-100 dark:border-white/5">
+                      <td className="px-4 py-2.5 font-medium text-slate-700 dark:text-slate-200">{c.name}</td>
+                      <td className="px-4 py-2.5 text-slate-500">{c.phone}</td>
+                      <td className="px-4 py-2.5 text-right font-semibold text-rose-500">{fmt(c.due)}</td>
+                    </tr>
+                  ))}
+                  {ov.topUnpaid.length === 0 && <tr><td colSpan={3} className="px-4 py-10 text-center text-xs text-slate-400">Kono unpaid client nei.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
         </div>
       )}
 

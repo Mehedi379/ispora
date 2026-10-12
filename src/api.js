@@ -161,6 +161,7 @@ export const api = {
   // stats
   stats: () => req("/stats"),
   statsDashboard: () => req("/stats/dashboard"),
+  statsOverview: () => req("/stats/overview"),
 
   // resellers
   listResellers: () => req("/resellers"),

@@ -167,6 +167,7 @@ model Zone {
   id       Int        @id @default(autoincrement())
   tenantId Int?
   name     String
+  details  String?
   clients  Client[]
   subZones SubZone[]
 
@@ -179,8 +180,10 @@ model SubZone {
   id      Int      @id @default(autoincrement())
   tenantId Int?
   name    String
+  details String?
   zone    Zone?    @relation(fields: [zoneId], references: [id])
   zoneId  Int?
+  boxes   Box[]
   clients Client[]
 
   @@unique([tenantId, name, zoneId])
@@ -190,14 +193,18 @@ model SubZone {
 
 // Splitter / distribution box (physical fiber box)
 model Box {
-  id       Int      @id @default(autoincrement())
-  tenantId Int?
-  name     String
-  code     String?
-  capacity Int      @default(0)
-  clients  Client[]
+  id        Int      @id @default(autoincrement())
+  tenantId  Int?
+  name      String
+  details   String?
+  code      String?
+  capacity  Int      @default(0)
+  subZone   SubZone? @relation(fields: [subZoneId], references: [id])
+  subZoneId Int?
+  clients   Client[]
 
   @@unique([tenantId, name])
+  @@index([subZoneId])
   @@index([tenantId])
 }
 
@@ -205,6 +212,8 @@ model ConnectionType {
   id      Int      @id @default(autoincrement())
   tenantId Int?
   name    String
+  details String?
+  active  Boolean  @default(true)
   clients Client[]
 
   @@unique([tenantId, name])
@@ -215,6 +224,8 @@ model ClientType {
   id      Int      @id @default(autoincrement())
   tenantId Int?
   name    String
+  details String?
+  image   String?
   clients Client[]
 
   @@unique([tenantId, name])
@@ -225,6 +236,8 @@ model ProtocolType {
   id      Int      @id @default(autoincrement())
   tenantId Int?
   name    String
+  details String?
+  active  Boolean  @default(true)
   clients Client[]
 
   @@unique([tenantId, name])
@@ -235,6 +248,7 @@ model BillingStatus {
   id   Int    @id @default(autoincrement())
   tenantId Int?
   name String
+  details String?
 
   @@unique([tenantId, name])
   @@index([tenantId])
@@ -244,6 +258,7 @@ model District {
   id       Int       @id @default(autoincrement())
   tenantId Int?
   name     String
+  details  String?
   upazilas Upazila[]
 
   @@unique([tenantId, name])
@@ -254,6 +269,7 @@ model Upazila {
   id         Int       @id @default(autoincrement())
   tenantId   Int?
   name       String
+  details    String?
   district   District? @relation(fields: [districtId], references: [id])
   districtId Int?
 
@@ -362,6 +378,9 @@ model Package {
   price    Int
   validity Int      @default(30)
   active   Boolean  @default(true)
+  type     String?  // Personal | Business
+  vas      String?  // value-added service note
+  description String?
   clients  Client[]
 
   @@unique([tenantId, name])

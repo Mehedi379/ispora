@@ -52,6 +52,9 @@ export const schemas = {
     speed: z.string().min(1, "Speed din").max(40),
     price: amount,
     validity: z.coerce.number().int().positive().max(3650).optional(),
+    type: z.string().max(20).optional(),
+    vas: z.string().max(120).optional(),
+    description: z.string().max(300).optional(),
   }),
 
   packageUpdate: z.object({
@@ -60,6 +63,9 @@ export const schemas = {
     price: amount.optional(),
     validity: z.coerce.number().int().positive().max(3650).optional(),
     active: z.boolean().optional(),
+    type: z.string().max(20).optional(),
+    vas: z.string().max(120).optional(),
+    description: z.string().max(300).optional(),
   }),
 
   ticketCreate: z.object({
