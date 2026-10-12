@@ -303,6 +303,8 @@ model VasService {
   name         String
   type         String           @default("Other") // IPTV | OTT | Static IP | Cloud | Other
   price        Int              @default(0)
+  balance      Int              @default(0) // provider prepaid balance (recharge)
+  logo         String?          // logo text/emoji ba image URL
   active       Boolean          @default(true)
   createdAt    DateTime         @default(now())
   transactions VasTransaction[]

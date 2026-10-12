@@ -198,6 +198,9 @@ export const api = {
   createVasService: (body) => req("/vas/services", { method: "POST", body }),
   updateVasService: (id, body) => req(`/vas/services/${id}`, { method: "PUT", body }),
   deleteVasService: (id) => req(`/vas/services/${id}`, { method: "DELETE" }),
+  rechargeVasService: (id, amount) => req(`/vas/services/${id}/recharge`, { method: "POST", body: { amount } }),
+  vasSettings: () => req("/vas/settings"),
+  saveVasSettings: (body) => req("/vas/settings", { method: "PUT", body }),
   listVasTransactions: (params = {}) => {
     const s = qs(params);
     return req(`/vas/transactions${s ? `?${s}` : ""}`);
