@@ -82,27 +82,33 @@ export default function DailyCollection() {
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 dark:bg-white/5 text-left text-xs uppercase tracking-wide text-slate-400">
                   <tr>
-                    <th className="px-5 py-3 font-semibold">Time</th>
-                    <th className="px-5 py-3 font-semibold">Customer</th>
-                    <th className="px-5 py-3 font-semibold">Zone</th>
-                    <th className="px-5 py-3 font-semibold">Method</th>
-                    <th className="px-5 py-3 font-semibold">Collector</th>
-                    <th className="px-5 py-3 text-right font-semibold">Amount</th>
+                    <th className="px-4 py-3 font-semibold whitespace-nowrap">Date</th>
+                    <th className="px-4 py-3 font-semibold whitespace-nowrap">C.Code</th>
+                    <th className="px-4 py-3 font-semibold whitespace-nowrap">UserName</th>
+                    <th className="px-4 py-3 font-semibold whitespace-nowrap">Cus. Name</th>
+                    <th className="px-4 py-3 font-semibold whitespace-nowrap">Mobile</th>
+                    <th className="px-4 py-3 font-semibold whitespace-nowrap">Note / Remarks</th>
+                    <th className="px-4 py-3 font-semibold whitespace-nowrap">Method</th>
+                    <th className="px-4 py-3 font-semibold whitespace-nowrap">Received By</th>
+                    <th className="px-4 py-3 text-right font-semibold whitespace-nowrap">Received</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.payments.map((p, i) => (
                     <motion.tr key={p.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i * 0.015, 0.3) }}
                       className="border-t border-slate-100 dark:border-white/5">
-                      <td className="px-5 py-3 text-slate-500 dark:text-slate-400">{p.time}</td>
-                      <td className="px-5 py-3 font-medium text-slate-700 dark:text-slate-200">{p.client}</td>
-                      <td className="px-5 py-3 text-slate-500 dark:text-slate-400">{p.zone || "—"}</td>
-                      <td className="px-5 py-3 text-slate-500 dark:text-slate-400">{p.method}</td>
-                      <td className="px-5 py-3 text-slate-500 dark:text-slate-400">{p.collectedBy}</td>
-                      <td className="px-5 py-3 text-right font-semibold text-emerald-600">৳{p.amount.toLocaleString()}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-slate-500 dark:text-slate-400">{p.date} <span className="text-xs text-slate-400">{p.time}</span></td>
+                      <td className="px-4 py-3 whitespace-nowrap font-mono text-xs text-slate-500 dark:text-slate-400">{p.code}</td>
+                      <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-700 dark:text-slate-200">{p.username || "—"}</td>
+                      <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-700 dark:text-slate-200">{p.client}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-slate-500 dark:text-slate-400">{p.phone || "—"}</td>
+                      <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{p.note || "—"}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-slate-500 dark:text-slate-400">{p.method}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-slate-500 dark:text-slate-400">{p.collectedBy}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-emerald-600 whitespace-nowrap">৳{p.amount.toLocaleString()}</td>
                     </motion.tr>
                   ))}
-                  {data.payments.length === 0 && <tr><td colSpan={6} className="py-12 text-center text-sm text-slate-400">Ei somoye kono collection nei.</td></tr>}
+                  {data.payments.length === 0 && <tr><td colSpan={9} className="py-12 text-center text-sm text-slate-400">Ei somoye kono collection nei.</td></tr>}
                 </tbody>
               </table>
             </div>

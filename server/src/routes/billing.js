@@ -17,15 +17,15 @@ r.get("/list", async (req, res) => {
   if (zone) where.zone = { name: String(zone) };
 
   const clients = await prisma.client.findMany({
-    where, include: { zone: true, package: true }, orderBy: { id: "desc" },
+    where, include: { zone: true, package: true, clientType: true, connectionType: true }, orderBy: { id: "desc" },
   });
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const ids = clients.map((c) => c.id);
 
-  // Ei maaser invoice (kon client already billed) + last payment — bulk, N+1 edano
-  const [invMonth, lastPays] = await Promise.all([
+  // Ei maaser invoice (kon client already billed) + last payment + ei maaser received — bulk, N+1 edano
+  const [invMonth, lastPays, recvMonth] = await Promise.all([
     prisma.invoice.findMany({
       where: { clientId: { in: ids }, issuedAt: { gte: monthStart } },
       select: { clientId: true, status: true },
@@ -33,19 +33,32 @@ r.get("/list", async (req, res) => {
     prisma.payment.groupBy({
       by: ["clientId"], where: { clientId: { in: ids } }, _max: { paidAt: true },
     }),
+    prisma.payment.groupBy({
+      by: ["clientId"], where: { clientId: { in: ids }, paidAt: { gte: monthStart } }, _sum: { amount: true },
+    }),
   ]);
   const billedSet = new Set(invMonth.map((i) => i.clientId));
   const lastMap = {};
   for (const p of lastPays) lastMap[p.clientId] = p._max.paidAt;
+  const recvMap = {};
+  for (const p of recvMonth) recvMap[p.clientId] = p._sum.amount || 0;
 
   res.json(clients.map((c) => ({
     id: c.id,
     name: c.name,
     phone: c.phone,
+    pppoe: c.pppoe,
     zone: c.zone?.name || "",
+    clientType: c.clientType?.name || "",
+    connectionType: c.connectionType?.name || "",
     package: c.package?.name || "",
-    monthlyBill: c.package?.price || 0,
+    speed: c.package?.speed || "",
+    monthlyBill: c.monthlyBill ?? c.package?.price ?? 0,
+    received: recvMap[c.id] || 0,
+    vat: 0,
     due: c.due,
+    advance: c.due < 0 ? Math.abs(c.due) : 0,
+    online: c.online,
     status: c.status,
     billedThisMonth: billedSet.has(c.id),
     lastPayment: lastMap[c.id] ? ymd(lastMap[c.id]) : null,
@@ -86,11 +99,15 @@ r.get("/collection", async (req, res) => {
     byCollector: Object.entries(byCollector).map(([name, amount]) => ({ name, amount })),
     payments: pays.map((p) => ({
       id: p.id,
+      code: p.client ? String(p.client.id).padStart(4, "0") : "—",
+      username: p.client?.pppoe || "",
       client: p.client?.name || "",
+      phone: p.client?.phone || "",
       zone: p.client?.zone?.name || "",
       amount: p.amount,
       method: p.method,
       collectedBy: p.collectedBy?.name || "—",
+      date: ymd(p.paidAt),
       time: new Date(p.paidAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
       note: p.note || "",
     })),
