@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import {
   Users, UserCheck, Wallet, AlertTriangle, TrendingUp, ArrowUpRight, ArrowDownRight, Wifi, WifiOff, Loader2,
   Calendar, CheckCircle2, Percent, HandCoins, Coins, PiggyBank, Receipt, Banknote, Server, DollarSign,
-  MessageSquare, ShoppingCart, Ticket, ListTodo, RefreshCw,
+  MessageSquare, ShoppingCart, Ticket, ListTodo, RefreshCw, UserPlus, UserMinus, BadgeCheck, Ban, Clock, PauseCircle, Timer, Building2, UsersRound,
 } from "lucide-react";
 import { useStore } from "../store";
 import { api } from "../api";
@@ -159,27 +159,27 @@ export default function Dashboard() {
       {dash && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {[
-            ["Total Client", dash.total, "text-sky-500", "/clients"],
-            ["Running", dash.running, "text-emerald-500", "/clients?status=active"],
-            ["Inactive", dash.inactive, "text-slate-400", "/clients?status=inactive"],
-            ["New (month)", dash.newClient, "text-indigo-500", "/clients/new-request"],
-            ["Left", dash.left, "text-rose-500", "/clients/left"],
-            ["Paid", dash.paid, "text-emerald-500", "/billing/collection"],
-            ["Unpaid", dash.unpaid, "text-amber-500", "/clients/due"],
-            ["Due", dash.due, "text-amber-500", "/clients/due"],
-            ["Expired", dash.expired, "text-rose-500", "/clients?status=expired"],
-            ["Suspended", dash.suspended, "text-slate-400", "/clients?status=suspended"],
-            ["Online", dash.online, "text-emerald-500", "/clients?online=1"],
-            ["Blocked", dash.blocked, "text-rose-500", "/clients?online=0"],
-            ["Bill Date Expire", dash.billExpire, "text-amber-500", "/billing/list"],
-            ["Unpaid Extension", dash.unpaidExtension, "text-amber-500", "/billing/list"],
-            ["Total POP", dash.totalPop, "text-sky-500", "/network-diagram/pop"],
-            ["POP Clients", dash.popClients, "text-indigo-500", "/network-diagram/clients"],
-            ["Pending Tickets", dash.pendingTickets, "text-rose-500", "/support/tickets"],
-            ["Processing Tickets", dash.processingTickets, "text-amber-500", "/support/tickets"],
-            ["Pending Tasks", dash.pendingTasks, "text-rose-500", "/tasks"],
-            ["Processing Tasks", dash.processingTasks, "text-amber-500", "/tasks"],
-          ].map(([label, value, color, to], i) => (
+            ["Total Client", dash.total, "text-sky-500", "/clients", Users],
+            ["Running", dash.running, "text-emerald-500", "/clients?status=active", UserCheck],
+            ["Inactive", dash.inactive, "text-slate-400", "/clients?status=inactive", PauseCircle],
+            ["New (month)", dash.newClient, "text-indigo-500", "/clients/new-request", UserPlus],
+            ["Left", dash.left, "text-rose-500", "/clients/left", UserMinus],
+            ["Paid", dash.paid, "text-emerald-500", "/billing/collection", BadgeCheck],
+            ["Unpaid", dash.unpaid, "text-amber-500", "/clients/due", AlertTriangle],
+            ["Due", dash.due, "text-amber-500", "/clients/due", Coins],
+            ["Expired", dash.expired, "text-rose-500", "/clients?status=expired", Clock],
+            ["Suspended", dash.suspended, "text-slate-400", "/clients?status=suspended", Ban],
+            ["Online", dash.online, "text-emerald-500", "/clients?online=1", Wifi],
+            ["Blocked", dash.blocked, "text-rose-500", "/clients?online=0", WifiOff],
+            ["Bill Date Expire", dash.billExpire, "text-amber-500", "/billing/list", Calendar],
+            ["Unpaid Extension", dash.unpaidExtension, "text-amber-500", "/billing/list", Timer],
+            ["Total POP", dash.totalPop, "text-sky-500", "/network-diagram/pop", Building2],
+            ["POP Clients", dash.popClients, "text-indigo-500", "/network-diagram/clients", UsersRound],
+            ["Pending Tickets", dash.pendingTickets, "text-rose-500", "/support/tickets", Ticket],
+            ["Processing Tickets", dash.processingTickets, "text-amber-500", "/support/tickets", RefreshCw],
+            ["Pending Tasks", dash.pendingTasks, "text-rose-500", "/tasks", ListTodo],
+            ["Processing Tasks", dash.processingTasks, "text-amber-500", "/tasks", RefreshCw],
+          ].map(([label, value, color, to, Icon], i) => (
             <motion.div
               key={label} custom={i} variants={fade} initial="hidden" animate="show"
               onClick={() => to && navigate(to)}
@@ -187,7 +187,10 @@ export default function Dashboard() {
               role="button" tabIndex={0}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate(to); }}
             >
-              <p className={`font-display text-xl font-bold ${color}`}>{value}</p>
+              <div className="flex items-start justify-between gap-2">
+                <p className={`font-display text-xl font-bold ${color}`}>{value}</p>
+                {Icon && <Icon size={16} className={`${color} opacity-60`} />}
+              </div>
               <p className="mt-0.5 text-[11px] text-slate-400">{label}</p>
             </motion.div>
           ))}
