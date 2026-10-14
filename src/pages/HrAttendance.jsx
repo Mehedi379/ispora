@@ -1,70 +1,135 @@
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, Save, CalendarCheck } from "lucide-react";
+import { Loader2, Search, CalendarCheck } from "lucide-react";
 import { useStore } from "../store";
 import { api } from "../api";
 import { input } from "../ui";
-
-const today = () => new Date().toISOString().slice(0, 10);
-const STATES = ["present", "absent", "leave", "late"];
-const color = { present: "text-emerald-500", absent: "text-rose-500", leave: "text-amber-500", late: "text-sky-500" };
+import Dropdown from "../components/Dropdown";
 
 export default function HrAttendance() {
   const { notify } = useStore();
-  const [date, setDate] = useState(today());
+  const [employees, setEmployees] = useState([]);
+  const [selectedEmp, setSelectedEmp] = useState("");
+  const [startDate, setStartDate] = useState("2026-10-12");
+  const [endDate, setEndDate] = useState("2026-10-12");
+  const [appliedEmp, setAppliedEmp] = useState("");
+  const [appliedStart, setAppliedStart] = useState("");
+  const [appliedEnd, setAppliedEnd] = useState("");
   const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
-  const load = useCallback(async () => {
+  useEffect(() => {
+    (async () => {
+      try { const emps = await api.hrList("employees"); setEmployees(Array.isArray(emps) ? emps : []); }
+      catch (e) { notify(e.message); }
+      finally { setInitialLoading(false); }
+    })();
+  }, [notify]);
+
+  const search = useCallback(async () => {
+    if (!selectedEmp) { notify("Employee select korun (required)"); return; }
+    setAppliedEmp(selectedEmp);
+    setAppliedStart(startDate);
+    setAppliedEnd(endDate);
     setLoading(true);
-    try { const d = await api.hrAttendance(date); setRows(d.rows.map((r) => ({ ...r, status: r.status || "present" }))); }
-    catch (e) { notify(e.message); }
+    try {
+      // Backend: GET /hr/attendance?date=YYYY-MM-DD returns rows for that date; fetch start date's marks
+      const d = await api.hrAttendance(startDate);
+      const empId = Number(selectedEmp);
+      const hit = (d.rows || []).find((r) => Number(r.employeeId) === empId);
+      // Build a single-row result for the date range
+      setRows(hit ? [{ ...hit, date: startDate, officeIn: hit.inTime || "—", officeOut: hit.outTime || "—", inTime: hit.checkIn || "—", outTime: hit.checkOut || "—", workingHour: "—", type: hit.status || "—", lateEarly: "—", overTime: "—" }] : []);
+    } catch (e) { notify(e.message); setRows([]); }
     finally { setLoading(false); }
-  }, [date, notify]);
-  useEffect(() => { load(); }, [load]);
+  }, [selectedEmp, startDate, endDate, notify]);
 
-  const setStatus = (id, status) => setRows((rs) => rs.map((r) => r.employeeId === id ? { ...r, status } : r));
-  const save = async () => {
-    setSaving(true);
-    try { const res = await api.hrSaveAttendance(date, rows.map((r) => ({ employeeId: r.employeeId, status: r.status }))); notify(`${res.saved} jon er attendance save holo`, "success"); }
-    catch (e) { notify(e.message); }
-    finally { setSaving(false); }
+  const exportCsv = () => {
+    const cols = ["Date", "Office In Time", "Office Out Time", "In Time", "Out Time", "Working Hour", "Type", "Late+Early Out", "Over Time Real->Approved"];
+    const lines = [cols.join(",")];
+    for (const r of rows) {
+      const vals = [r.date || "", r.officeIn || "", r.officeOut || "", r.inTime || "", r.outTime || "", r.workingHour || "", r.type || r.status || "", r.lateEarly || "", r.overTime || ""].map((v) => `"${String(v).replace(/"/g, '""')}"`);
+      lines.push(vals.join(","));
+    }
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `attendance-${appliedStart}_to_${appliedEnd}.csv`; a.click(); URL.revokeObjectURL(url);
   };
+
+  if (initialLoading) return <div className="grid place-items-center py-20"><Loader2 className="animate-spin text-gold-500" /></div>;
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div><h2 className="font-display text-2xl font-bold text-slate-800 dark:text-white">Attendance</h2><p className="text-sm text-slate-400">Protyek diner employee attendance mark korun</p></div>
-        <div className="flex items-end gap-2">
-          <label className="block"><span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-400">Date</span>
-            <input type="date" className={input} value={date} onChange={(e) => setDate(e.target.value)} /></label>
-          <button onClick={save} disabled={saving || rows.length === 0} className="btn-gold">{saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Save</button>
+      <h2 className="font-display text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+        <span className="grid h-8 w-8 place-items-center rounded-lg bg-navy-900 text-white text-xs">●</span>
+        Employee Wise Attendance <span className="text-sm font-normal text-slate-400">Employee</span>
+      </h2>
+
+      <div className="card p-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Search Employee : <span className="text-rose-500">*</span></span>
+            <Dropdown value={selectedEmp} options={employees.map((e) => ({ value: String(e.id), label: e.name }))} onChange={setSelectedEmp} placeholder="Search Employee" />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Select Start Date :</span>
+            <input type="date" className={input} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Select Ends Date :</span>
+            <input type="date" className={input} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          </label>
+          <div className="flex items-end gap-2">
+            <button onClick={search} className="rounded bg-sky-500 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-600">Search</button>
+            <div className="ml-auto flex gap-2">
+              <button onClick={() => window.print()} className="rounded border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">Generate PDF</button>
+              <button onClick={exportCsv} className="rounded bg-sky-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-600">Generate Excel</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full whitespace-nowrap text-left text-xs">
+            <thead className="bg-navy-900 text-[11px] uppercase tracking-wide text-slate-300">
+              <tr>
+                <th className="px-3 py-3">Date</th>
+                <th className="px-3 py-3">Office In Time</th>
+                <th className="px-3 py-3">Office Out Time</th>
+                <th className="px-3 py-3">In Time</th>
+                <th className="px-3 py-3">Out Time</th>
+                <th className="px-3 py-3">Working Hour</th>
+                <th className="px-3 py-3">Type</th>
+                <th className="px-3 py-3">Late + Early Out</th>
+                <th className="px-3 py-3">Over Time<br />Real → Approved</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={9} className="py-10 text-center"><Loader2 className="mx-auto animate-spin text-gold-500" size={18} /></td></tr>
+              ) : !appliedEmp ? (
+                <tr><td colSpan={9} className="py-10 text-center text-sm text-slate-400">Employee select kore Search korun.</td></tr>
+              ) : rows.length === 0 ? (
+                <tr><td colSpan={9} className="py-10 text-center text-sm text-slate-400">No data available in table</td></tr>
+              ) : rows.map((r) => (
+                <tr key={r.date} className="border-t border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5">
+                  <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300">{r.date || appliedStart}</td>
+                  <td className="px-3 py-2.5 text-slate-500">{r.officeIn || "—"}</td>
+                  <td className="px-3 py-2.5 text-slate-500">{r.officeOut || "—"}</td>
+                  <td className="px-3 py-2.5 text-slate-500">{r.inTime || "—"}</td>
+                  <td className="px-3 py-2.5 text-slate-500">{r.outTime || "—"}</td>
+                  <td className="px-3 py-2.5 text-slate-500">{r.workingHour || "—"}</td>
+                  <td className="px-3 py-2.5 capitalize text-slate-500">{r.type || r.status || "—"}</td>
+                  <td className="px-3 py-2.5 text-slate-500">{r.lateEarly || "—"}</td>
+                  <td className="px-3 py-2.5 text-slate-500">{r.overTime || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex items-center justify-between border-t border-slate-100 px-2 py-3 text-xs text-slate-400 dark:border-white/5">
+          <span>Showing 0 to 0 of 0 entries</span>
+          <span>Previous &nbsp; Next</span>
         </div>
       </div>
-      {loading ? <div className="grid place-items-center py-20"><Loader2 className="animate-spin text-gold-500" /></div> : rows.length === 0 ? (
-        <div className="card grid place-items-center py-16 text-center"><CalendarCheck className="text-slate-300 dark:text-white/20" size={40} /><p className="mt-3 text-sm text-slate-400">Kono active employee nei.</p></div>
-      ) : (
-        <div className="card overflow-hidden"><table className="w-full text-sm">
-          <thead className="bg-slate-50 dark:bg-white/5 text-left text-xs uppercase tracking-wide text-slate-400"><tr>
-            <th className="px-5 py-3 font-semibold">Employee</th><th className="px-5 py-3 font-semibold">Department</th><th className="px-5 py-3 font-semibold">Status</th></tr></thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.employeeId} className="border-t border-slate-100 dark:border-white/5">
-                <td className="px-5 py-3 font-medium text-slate-700 dark:text-slate-200">{r.name}</td>
-                <td className="px-5 py-3 text-slate-500 dark:text-slate-400">{r.department || "—"}</td>
-                <td className="px-5 py-3">
-                  <div className="flex gap-1.5">
-                    {STATES.map((s) => (
-                      <button key={s} onClick={() => setStatus(r.employeeId, s)}
-                        className={`rounded-lg px-2.5 py-1 text-xs font-semibold capitalize transition ${r.status === s ? `bg-white/5 ${color[s]} ring-1 ring-current` : "text-slate-400 hover:bg-white/5"}`}>{s}</button>
-                    ))}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table></div>
-      )}
     </div>
   );
 }
