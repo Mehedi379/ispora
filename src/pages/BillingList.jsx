@@ -1,16 +1,21 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Search, Loader2, FileStack, Users, UserX, Wallet, Coins, FileText, PiggyBank, Calendar } from "lucide-react";
+import { Search, Loader2, FileStack, Users, UserX, Wallet, Coins, FileText, PiggyBank, Calendar, MoreVertical, CreditCard, AlertCircle, Eye, FileSpreadsheet, Printer, History } from "lucide-react";
 import Modal from "../components/Modal";
+import Dropdown from "../components/Dropdown";
 import { useStore } from "../store";
+import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { input } from "../ui";
 import { statusStyle } from "../data";
+import { clientLabel } from "../data";
 
 const fmt = (n) => `৳${Number(n || 0).toLocaleString()}`;
 
 export default function BillingList() {
   const { user, notify } = useStore();
+  const { clients, refreshClients, toggleLine } = useStore();
+  const navigate = useNavigate();
   const isAdmin = user?.role === "admin";
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,6 +23,12 @@ export default function BillingList() {
   const [genOpen, setGenOpen] = useState(false);
   const [gen, setGen] = useState(false);
   const [err, setErr] = useState("");
+  const [payRow, setPayRow] = useState(null);
+  const [payAmount, setPayAmount] = useState("");
+  const [payMethod, setPayMethod] = useState("Cash");
+  const [payBusy, setPayBusy] = useState(false);
+  const [payErr, setPayErr] = useState("");
+  const [menuOpen, setMenuOpen] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -43,6 +54,25 @@ export default function BillingList() {
     try { const res = await api.generateBills(); setGenOpen(false); notify(`${res.created} ta notun bill generate holo`, "success"); await load(); }
     catch (e) { notify(e.message); }
     finally { setGen(false); }
+  };
+
+  const openPay = (r) => { setPayRow(r); setPayAmount(String(r.due > 0 ? r.due : r.monthlyBill || "")); setPayMethod("Cash"); setPayErr(""); };
+  const doPay = async () => {
+    const amt = Number(payAmount);
+    if (!amt || amt <= 0) { setPayErr("Amount din"); return; }
+    setPayBusy(true);
+    try {
+      const c = clients.find((x) => x.id === payRow.id) || payRow;
+      await api.collectPayment({ clientId: c.id, amount: amt, method: payMethod });
+      setPayRow(null); setPayAmount("");
+      await Promise.all([load(), refreshClients()]);
+      notify("Payment collected", "success");
+    } catch (e) { setPayErr(e.message); }
+    finally { setPayBusy(false); }
+  };
+  const doDue = async (r) => {
+    // Mark/collect flow not wired — mark intent, user can adjust via client due
+    notify("Due: ekhane Pay kore due koman, ba Client edit theke due adjust korun.");
   };
 
   const G = { sky: "from-sky-500 to-blue-600", teal: "from-teal-500 to-emerald-600", violet: "from-violet-500 to-purple-600", slate: "from-slate-600 to-slate-800" };
@@ -118,6 +148,7 @@ export default function BillingList() {
                   <th className={th}>Pay Date</th>
                   <th className={th}>M.Status</th>
                   <th className={th}>B.Status</th>
+                  <th className={th}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -140,15 +171,42 @@ export default function BillingList() {
                     <td className={`px-3 py-3 whitespace-nowrap font-semibold ${r.due > 0 ? "text-rose-500" : "text-slate-400"}`}>{r.due > 0 ? fmt(r.due) : "—"}</td>
                     <td className={td}>{r.advance ? fmt(r.advance) : "—"}</td>
                     <td className={td}>{r.lastPayment || "—"}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-xs text-slate-500">{r.server || "—"}</td>
                     <td className="px-3 py-3 whitespace-nowrap">
-                      <span className={`inline-flex items-center gap-1 text-xs font-semibold ${r.online ? "text-emerald-500" : "text-slate-400"}`}>
-                        <span className={`h-2 w-2 rounded-full ${r.online ? "bg-emerald-500" : "bg-slate-400"}`} /> {r.online ? "Online" : "Offline"}
-                      </span>
+                      <button
+                        onClick={async () => {
+                          try { await toggleLine(r.id); await load(); }
+                          catch (e) { notify(e.message); }
+                        }}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${r.online ? "bg-sky-500" : "bg-slate-300 dark:bg-white/20"}`}
+                        title={r.online ? "Online — click to disable" : "Offline — click to enable"}
+                      >
+                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${r.online ? "translate-x-5" : "translate-x-0.5"}`} />
+                      </button>
                     </td>
                     <td className="px-3 py-3 whitespace-nowrap"><span className={`rounded-lg px-2.5 py-1 text-xs font-semibold capitalize ${statusStyle[r.status]}`}>{r.status}</span></td>
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => openPay(r)} className="rounded-md bg-slate-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-slate-700">Pay</button>
+                        <button onClick={() => doDue(r)} className="rounded-md bg-rose-500 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-rose-600">Due</button>
+                        <div className="relative">
+                          <button onClick={() => setMenuOpen(menuOpen === r.id ? null : r.id)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5">
+                            <MoreVertical size={14} />
+                          </button>
+                          {menuOpen === r.id && (
+                            <div className="absolute right-0 z-10 mt-1 w-44 rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-white/10 dark:bg-navy-800">
+                              <button onClick={() => { setMenuOpen(null); navigate(`/clients?search=${encodeURIComponent(r.name)}`); }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-white/5"><Eye size={14} /> View Client</button>
+                              <button onClick={() => { setMenuOpen(null); openPay(r); }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-white/5"><CreditCard size={14} /> Collect Payment</button>
+                              <button onClick={() => { setMenuOpen(null); navigate("/invoices"); }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-white/5"><FileSpreadsheet size={14} /> Invoices</button>
+                              <button onClick={() => { setMenuOpen(null); navigate("/payments"); }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-white/5"><History size={14} /> Payments</button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
                   </motion.tr>
                 ))}
-                {filtered.length === 0 && <tr><td colSpan={18} className="py-12 text-center text-sm text-slate-400">Kono customer nei.</td></tr>}
+                {filtered.length === 0 && <tr><td colSpan={19} className="py-12 text-center text-sm text-slate-400">Kono customer nei.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -159,6 +217,18 @@ export default function BillingList() {
         footer={<><button onClick={() => setGenOpen(false)} className="btn-ghost">Cancel</button>
           <button onClick={runGenerate} disabled={gen} className="btn-gold">{gen ? <Loader2 size={15} className="animate-spin" /> : <FileStack size={15} />} Generate</button></>}>
         <p className="text-sm text-slate-500 dark:text-slate-300">Ei maase jader bill ekhono boshe nai, tader shobar jonno invoice toiri hobe ebong due barbe. Nishchit?</p>
+      </Modal>
+
+      <Modal open={!!payRow} onClose={() => setPayRow(null)} title={`Collect Payment — ${payRow?.name || ""}`} subtitle={payRow ? `${payRow.pppoe} · due ${fmt(payRow.due)}` : ""} size="sm"
+        footer={<><button onClick={() => setPayRow(null)} className="btn-ghost">Cancel</button>
+          <button onClick={doPay} disabled={payBusy} className="btn-gold">{payBusy ? <Loader2 size={15} className="animate-spin" /> : <CreditCard size={15} />} Collect</button></>}>
+        <div className="space-y-3">
+          {payErr && <p className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-500">{payErr}</p>}
+          <label className="block"><span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Amount (৳)</span>
+            <input className={input} type="number" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} placeholder="500" autoFocus /></label>
+          <label className="block"><span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Method</span>
+            <Dropdown value={payMethod} options={["Cash", "bKash", "Nagad", "Rocket", "Bank"]} onChange={setPayMethod} /></label>
+        </div>
       </Modal>
     </div>
   );
