@@ -14,16 +14,19 @@ const inUseError = (res, title) => res.status(400).json({ error: `${title} use e
 // ---------- Departments ----------
 r.get("/departments", async (_q, res) => {
   const list = await prisma.department.findMany({ orderBy: { name: "asc" }, include: { _count: { select: { employees: true } } } });
-  res.json(list.map((d) => ({ id: d.id, name: d.name, employees: d._count.employees })));
+  res.json(list.map((d) => ({ id: d.id, name: d.name, details: d.details || "", employees: d._count.employees })));
 });
 r.post("/departments", async (req, res) => {
   const name = clean(req.body?.name, 80);
   if (!name) return res.status(400).json({ error: "Department name din" });
-  try { res.status(201).json(await prisma.department.create({ data: { name } })); }
+  try { res.status(201).json(await prisma.department.create({ data: { name, details: clean(req.body?.details, 300) } })); }
   catch (e) { res.status(400).json({ error: e.code === "P2002" ? "Ei department ache" : "Create failed" }); }
 });
 r.put("/departments/:id", async (req, res) => {
-  try { res.json(await prisma.department.update({ where: { id: Number(req.params.id) }, data: { name: clean(req.body?.name, 80) } })); }
+  const data = {};
+  if (req.body?.name != null) data.name = clean(req.body.name, 80);
+  if (req.body?.details != null) data.details = clean(req.body.details, 300);
+  try { res.json(await prisma.department.update({ where: { id: Number(req.params.id) }, data })); }
   catch { res.status(400).json({ error: "Update failed" }); }
 });
 r.delete("/departments/:id", async (req, res) => {
@@ -34,20 +37,23 @@ r.delete("/departments/:id", async (req, res) => {
 // ---------- Positions ----------
 r.get("/positions", async (_q, res) => {
   const list = await prisma.position.findMany({ orderBy: { name: "asc" }, include: { department: true } });
-  res.json(list.map((p) => ({ id: p.id, name: p.name, departmentId: p.departmentId, department: p.department?.name || "" })));
+  res.json(list.map((p) => ({ id: p.id, name: p.name, type: p.type || "Shared", supervisor: p.supervisor || "", status: p.status || "active", departmentId: p.departmentId, department: p.department?.name || "" })));
 });
 r.post("/positions", async (req, res) => {
   const name = clean(req.body?.name, 80);
   if (!name) return res.status(400).json({ error: "Position name din" });
-  const data = { name, departmentId: req.body?.departmentId ? Number(req.body.departmentId) : null };
-  try { const p = await prisma.position.create({ data, include: { department: true } }); res.status(201).json({ id: p.id, name: p.name, departmentId: p.departmentId, department: p.department?.name || "" }); }
+  const data = { name, departmentId: req.body?.departmentId ? Number(req.body.departmentId) : null, type: clean(req.body?.type, 30) || "Shared", supervisor: clean(req.body?.supervisor, 80), status: clean(req.body?.status, 20) || "active" };
+  try { const p = await prisma.position.create({ data, include: { department: true } }); res.status(201).json({ id: p.id, name: p.name, type: p.type || "Shared", supervisor: p.supervisor || "", status: p.status || "active", departmentId: p.departmentId, department: p.department?.name || "" }); }
   catch (e) { res.status(400).json({ error: e.code === "P2002" ? "Ei position ache" : "Create failed" }); }
 });
 r.put("/positions/:id", async (req, res) => {
   const data = {};
   if (req.body?.name != null) data.name = clean(req.body.name, 80);
+  if (req.body?.type != null) data.type = clean(req.body.type, 30) || "Shared";
+  if (req.body?.supervisor != null) data.supervisor = clean(req.body.supervisor, 80);
+  if (req.body?.status != null) data.status = clean(req.body.status, 20) || "active";
   if (req.body?.departmentId !== undefined) data.departmentId = req.body.departmentId ? Number(req.body.departmentId) : null;
-  try { const p = await prisma.position.update({ where: { id: Number(req.params.id) }, data, include: { department: true } }); res.json({ id: p.id, name: p.name, departmentId: p.departmentId, department: p.department?.name || "" }); }
+  try { const p = await prisma.position.update({ where: { id: Number(req.params.id) }, data, include: { department: true } }); res.json({ id: p.id, name: p.name, type: p.type || "Shared", supervisor: p.supervisor || "", status: p.status || "active", departmentId: p.departmentId, department: p.department?.name || "" }); }
   catch { res.status(400).json({ error: "Update failed" }); }
 });
 r.delete("/positions/:id", async (req, res) => {
@@ -61,7 +67,7 @@ r.post("/payheads", async (req, res) => {
   const name = clean(req.body?.name, 80);
   if (!name) return res.status(400).json({ error: "Payhead name din" });
   const type = req.body?.type === "deduction" ? "deduction" : "earning";
-  try { res.status(201).json(await prisma.payhead.create({ data: { name, type, amount: Math.max(0, Math.round(Number(req.body?.amount) || 0)) } })); }
+  try { res.status(201).json(await prisma.payhead.create({ data: { name, type, amount: Math.max(0, Math.round(Number(req.body?.amount) || 0)), description: clean(req.body?.description, 300) } })); }
   catch (e) { res.status(400).json({ error: e.code === "P2002" ? "Ei payhead ache" : "Create failed" }); }
 });
 r.put("/payheads/:id", async (req, res) => {
@@ -69,6 +75,7 @@ r.put("/payheads/:id", async (req, res) => {
   if (req.body?.name != null) data.name = clean(req.body.name, 80);
   if (req.body?.type != null) data.type = req.body.type === "deduction" ? "deduction" : "earning";
   if (req.body?.amount != null) data.amount = Math.max(0, Math.round(Number(req.body.amount) || 0));
+  if (req.body?.description != null) data.description = clean(req.body.description, 300);
   if (req.body?.active != null) data.active = !!req.body.active;
   try { res.json(await prisma.payhead.update({ where: { id: Number(req.params.id) }, data })); }
   catch { res.status(400).json({ error: "Update failed" }); }
@@ -102,11 +109,26 @@ r.delete("/resign-rules/:id", async (req, res) => {
 // ---------- Employees ----------
 const empShape = (e) => ({
   id: e.id, name: e.name, phone: e.phone || "", email: e.email || "", address: e.address || "", nid: e.nid || "",
+  officeContact: e.officeContact || "", guardianContact: e.guardianContact || "",
+  dob: e.dob ? ymd(e.dob) : null, gender: e.gender || "", maritalStatus: e.maritalStatus || "",
+  facebook: e.facebook || "", reference: e.reference || "", district: e.district || "", upazila: e.upazila || "",
+  workExperience: e.workExperience || "", presentAddress: e.presentAddress || "", permanentAddress: e.permanentAddress || "",
+  device: e.device || "", punchCardId: e.punchCardId || "", inTime: e.inTime || "", outTime: e.outTime || "",
+  lastDegree: e.lastDegree || "", institution: e.institution || "", passingYear: e.passingYear || "", image: e.image || "", comment: e.comment || "",
   basicSalary: e.basicSalary, joinDate: ymd(e.joinDate), status: e.status,
   resignDate: e.resignDate ? ymd(e.resignDate) : null, resignReason: e.resignReason || "",
   departmentId: e.departmentId, department: e.department?.name || "",
   positionId: e.positionId, position: e.position?.name || "",
 });
+
+const empTextFields = [
+  ["phone", 20], ["email", 120], ["address", 200], ["nid", 40],
+  ["officeContact", 20], ["guardianContact", 20], ["gender", 20], ["maritalStatus", 20],
+  ["facebook", 200], ["reference", 120], ["district", 60], ["upazila", 60],
+  ["workExperience", 500], ["presentAddress", 500], ["permanentAddress", 500],
+  ["device", 60], ["punchCardId", 40], ["inTime", 20], ["outTime", 20],
+  ["lastDegree", 60], ["institution", 120], ["passingYear", 10], ["image", 300], ["comment", 500],
+];
 
 r.get("/employees", async (req, res) => {
   const where = {};
@@ -120,20 +142,32 @@ r.post("/employees", async (req, res) => {
   const data = {
     name, phone: clean(req.body?.phone, 20), email: clean(req.body?.email, 120),
     address: clean(req.body?.address, 200), nid: clean(req.body?.nid, 40),
+    officeContact: clean(req.body?.officeContact, 20), guardianContact: clean(req.body?.guardianContact, 20),
+    gender: clean(req.body?.gender, 20), maritalStatus: clean(req.body?.maritalStatus, 20),
+    facebook: clean(req.body?.facebook, 200), reference: clean(req.body?.reference, 120),
+    district: clean(req.body?.district, 60), upazila: clean(req.body?.upazila, 60),
+    workExperience: clean(req.body?.workExperience, 500), presentAddress: clean(req.body?.presentAddress, 500),
+    permanentAddress: clean(req.body?.permanentAddress, 500), device: clean(req.body?.device, 60),
+    punchCardId: clean(req.body?.punchCardId, 40), inTime: clean(req.body?.inTime, 20), outTime: clean(req.body?.outTime, 20),
+    lastDegree: clean(req.body?.lastDegree, 60), institution: clean(req.body?.institution, 120),
+    passingYear: clean(req.body?.passingYear, 10), image: clean(req.body?.image, 300), comment: clean(req.body?.comment, 500),
     basicSalary: Math.max(0, Math.round(Number(req.body?.basicSalary) || 0)),
     departmentId: req.body?.departmentId ? Number(req.body.departmentId) : null,
     positionId: req.body?.positionId ? Number(req.body.positionId) : null,
   };
+  if (req.body?.dob) { const d = new Date(req.body.dob); if (!Number.isNaN(d.getTime())) data.dob = d; }
   if (req.body?.joinDate) { const d = new Date(req.body.joinDate); if (!Number.isNaN(d.getTime())) data.joinDate = d; }
   const e = await prisma.employee.create({ data, include: { department: true, position: true } });
   res.status(201).json(empShape(e));
 });
 r.put("/employees/:id", async (req, res) => {
   const data = {};
-  for (const k of ["name", "phone", "email", "address", "nid"]) if (req.body?.[k] != null) data[k] = clean(req.body[k], 200);
+  for (const [k, mx] of empTextFields) if (req.body?.[k] != null) data[k] = clean(req.body[k], mx);
+  if (req.body?.name != null) data.name = clean(req.body.name, 120);
   if (req.body?.basicSalary != null) data.basicSalary = Math.max(0, Math.round(Number(req.body.basicSalary) || 0));
   if (req.body?.departmentId !== undefined) data.departmentId = req.body.departmentId ? Number(req.body.departmentId) : null;
   if (req.body?.positionId !== undefined) data.positionId = req.body.positionId ? Number(req.body.positionId) : null;
+  if (req.body?.dob != null) { const d = req.body.dob ? new Date(req.body.dob) : null; if (d && Number.isNaN(d.getTime())) return res.status(400).json({ error: "Invalid DOB" }); data.dob = d; }
   if (req.body?.joinDate) { const d = new Date(req.body.joinDate); if (!Number.isNaN(d.getTime())) data.joinDate = d; }
   try { const e = await prisma.employee.update({ where: { id: Number(req.params.id) }, data, include: { department: true, position: true } }); res.json(empShape(e)); }
   catch { res.status(400).json({ error: "Update failed" }); }

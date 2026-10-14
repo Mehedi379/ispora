@@ -268,10 +268,10 @@ export default function App() {
                   <Route path="/mikrotik/backup" element={<AdminOnly><MikrotikBackup /></AdminOnly>} />
                   <Route path="/mikrotik/import" element={<AdminOnly><MikrotikImport /></AdminOnly>} />
                   <Route path="/mikrotik/bulk-import" element={<AdminOnly><MikrotikBulkImport /></AdminOnly>} />
-                  <Route path="/hr/departments" element={<AdminOnly><HrLookup title="Department" entity="departments" fields={[]} /></AdminOnly>} />
-                  <Route path="/hr/positions" element={<AdminOnly><HrLookup title="Position" entity="positions" fields={[{ key: "departmentId", label: "Department", type: "select", optionsEntity: "departments", displayKey: "department" }]} /></AdminOnly>} />
-                  <Route path="/hr/payheads" element={<AdminOnly><HrLookup title="Payhead" entity="payheads" fields={[{ key: "type", label: "Type", type: "enum", options: ["earning", "deduction"] }, { key: "amount", label: "Amount", type: "number" }]} /></AdminOnly>} />
-                  <Route path="/hr/resign-rules" element={<AdminOnly><HrLookup title="Resign Rule" entity="resign-rules" fields={[{ key: "noticeDays", label: "Notice Days", type: "number" }, { key: "note", label: "Note", type: "text" }]} /></AdminOnly>} />
+                  <Route path="/hr/departments" element={<AdminOnly><HrLookup title="Department" entity="departments" fields={[{ key: "details", label: "Details", type: "text" }]} /></AdminOnly>} />
+                  <Route path="/hr/positions" element={<AdminOnly><HrLookup title="Position" entity="positions" fields={[{ key: "type", label: "Position Type", type: "enum", options: ["Shared", "Single"] }, { key: "departmentId", label: "Department", type: "select", optionsEntity: "departments", displayKey: "department" }, { key: "supervisor", label: "Supervisor", type: "text" }, { key: "status", label: "Status", type: "enum", options: ["active", "inactive"] }]} /></AdminOnly>} />
+                  <Route path="/hr/payheads" element={<AdminOnly><HrLookup title="Payhead" entity="payheads" fields={[{ key: "type", label: "PayHead Type", type: "enum", options: ["earning", "deduction"] }, { key: "amount", label: "Amount", type: "number" }, { key: "description", label: "Description", type: "text" }]} /></AdminOnly>} />
+                  <Route path="/hr/resign-rules" element={<AdminOnly><HrLookup title="Resign Rule" entity="resign-rules" fields={[{ key: "noticeDays", label: "Notice Days", type: "number" }, { key: "note", label: "Details", type: "text" }]} /></AdminOnly>} />
                   <Route path="/hr/employees" element={<AdminOnly><HrEmployees view="list" /></AdminOnly>} />
                   <Route path="/hr/resignation" element={<AdminOnly><HrEmployees view="resignation" /></AdminOnly>} />
                   <Route path="/hr/rejoin" element={<AdminOnly><HrEmployees view="rejoin" /></AdminOnly>} />

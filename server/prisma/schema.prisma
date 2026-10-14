@@ -658,6 +658,7 @@ model Department {
   id        Int        @id @default(autoincrement())
   tenantId  Int?
   name      String
+  details   String?
   positions Position[]
   employees Employee[]
 
@@ -669,6 +670,9 @@ model Position {
   id           Int         @id @default(autoincrement())
   tenantId     Int?
   name         String
+  type         String?     @default("Shared")
+  supervisor   String?
+  status       String      @default("active")
   department   Department? @relation(fields: [departmentId], references: [id])
   departmentId Int?
   employees    Employee[]
@@ -680,12 +684,13 @@ model Position {
 
 // Salary component (earning ba deduction)
 model Payhead {
-  id     Int     @id @default(autoincrement())
-  tenantId Int?
-  name   String
-  type   String  @default("earning") // earning | deduction
-  amount Int     @default(0)
-  active Boolean @default(true)
+  id          Int     @id @default(autoincrement())
+  tenantId    Int?
+  name        String
+  type        String  @default("earning") // earning | deduction
+  amount      Int     @default(0)
+  description String?
+  active      Boolean @default(true)
 
   @@unique([tenantId, name])
   @@index([tenantId])
@@ -711,6 +716,28 @@ model Employee {
   email        String?
   address      String?
   nid          String?
+  // Extended HR profile (competitor-style Add Employee)
+  officeContact    String?
+  guardianContact  String?
+  dob              DateTime?
+  gender           String?
+  maritalStatus    String?
+  facebook         String?
+  reference        String?
+  district         String?
+  upazila          String?
+  workExperience   String?
+  presentAddress   String?
+  permanentAddress String?
+  device           String?
+  punchCardId      String?
+  inTime           String?
+  outTime          String?
+  lastDegree       String?
+  institution      String?
+  passingYear      String?
+  image            String?
+  comment          String?
   basicSalary  Int         @default(0)
   joinDate     DateTime    @default(now())
   status       String      @default("active") // active | resigned
