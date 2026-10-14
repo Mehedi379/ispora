@@ -1,5 +1,5 @@
-import { NavLink } from "react-router-dom";
-import { useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Users, FileText, Store, Activity, Wallet, Scale,
@@ -200,23 +200,22 @@ const menu = [
   { to: "/resellers", icon: Store, label: "Resellers", adminOnly: true },
 ];
 
-function Group({ item, onNavigate }) {
-  const [open, setOpen] = useState(false);
+function Group({ item, isOpen, onToggle, onNavigate }) {
   const Icon = item.icon;
   return (
     <div>
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={onToggle}
         className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5"
       >
         <Icon size={18} className="text-slate-400 group-hover:text-gold-400" />
         <span className="flex-1 text-left">{item.label}</span>
-        <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
+        <motion.span animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
           <ChevronDown size={15} />
         </motion.span>
       </button>
       <AnimatePresence>
-        {open && (
+        {isOpen && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
@@ -250,6 +249,7 @@ function Group({ item, onNavigate }) {
 
 export default function Sidebar({ onNavigate }) {
   const { user, hasFeature } = useStore();
+  const location = useLocation();
   const isAdmin = user?.role === "admin";
   // Platform Owner hole shudhu SaaS control menu — ISP module gula na
   const isOwner = user?.isPlatformOwner;
@@ -262,6 +262,14 @@ export default function Sidebar({ onNavigate }) {
             ? { ...item, children: item.children.filter((c) => isAdmin || !c.adminOnly) }
             : item
         );
+
+  // Accordion: ekta khulle baki bondho. Route change e auto-open (Dashboard card click etc.)
+  const [openLabel, setOpenLabel] = useState(null);
+  useEffect(() => {
+    const path = location.pathname + location.search;
+    const active = visibleMenu.find((item) => item.children && item.children.some((c) => path.startsWith(c.to)));
+    if (active) setOpenLabel(active.label);
+  }, [location.pathname, location.search]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="flex h-full flex-col bg-navy-950 text-white">
       <div className="px-5 py-5">
@@ -280,7 +288,13 @@ export default function Sidebar({ onNavigate }) {
                 <Lock size={13} className="text-slate-500" />
               </NavLink>
             ) : (
-              <Group key={item.label} item={item} onNavigate={onNavigate} />
+              <Group
+                key={item.label}
+                item={item}
+                isOpen={openLabel === item.label}
+                onToggle={() => setOpenLabel((prev) => (prev === item.label ? null : item.label))}
+                onNavigate={onNavigate}
+              />
             )
           ) : (
             <NavLink
