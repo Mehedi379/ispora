@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Users, UserCheck, Wallet, AlertTriangle, TrendingUp, ArrowUpRight, ArrowDownRight, Wifi, WifiOff, Loader2,
@@ -16,6 +17,7 @@ const fade = {
 const fmt = (n) => `৳ ${Number(n || 0).toLocaleString()}`;
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { clients, notify } = useStore();
   const [stats, setStats] = useState(null);
   const [dash, setDash] = useState(null);
@@ -74,10 +76,10 @@ export default function Dashboard() {
   const activePct = stats.totalClients ? Math.round((stats.active / stats.totalClients) * 100) : 0;
 
   const cards = [
-    { label: "Total Clients", value: stats.totalClients, icon: Users, color: "from-sky-400 to-blue-600", sub: `${stats.online} online`, tone: "flat" },
-    { label: "Active Now", value: stats.active, icon: UserCheck, color: "from-emerald-400 to-green-600", sub: `${activePct}% of total`, tone: "flat" },
-    { label: "This Month Collection", value: fmt(stats.collectionThisMonth), icon: Wallet, color: "from-gold-400 to-gold-600", sub: `${trendUp ? "+" : ""}${trendPct.toFixed(1)}%`, tone: trendUp ? "up" : "down" },
-    { label: "Total Due", value: fmt(stats.due), icon: AlertTriangle, color: "from-rose-400 to-red-600", sub: `${dueCount} customer`, tone: "flat" },
+    { label: "Total Clients", value: stats.totalClients, icon: Users, color: "from-sky-400 to-blue-600", sub: `${stats.online} online`, tone: "flat", to: "/clients" },
+    { label: "Active Now", value: stats.active, icon: UserCheck, color: "from-emerald-400 to-green-600", sub: `${activePct}% of total`, tone: "flat", to: "/clients?status=active" },
+    { label: "This Month Collection", value: fmt(stats.collectionThisMonth), icon: Wallet, color: "from-gold-400 to-gold-600", sub: `${trendUp ? "+" : ""}${trendPct.toFixed(1)}%`, tone: trendUp ? "up" : "down", to: "/billing/collection" },
+    { label: "Total Due", value: fmt(stats.due), icon: AlertTriangle, color: "from-rose-400 to-red-600", sub: `${dueCount} customer`, tone: "flat", to: "/clients/due" },
   ];
   const expiring = [...clients].filter((c) => c.expiry).sort((a, b) => a.expiry.localeCompare(b.expiry)).slice(0, 3);
 
@@ -89,34 +91,34 @@ export default function Dashboard() {
 
   // Competitor-style status cards (ticket/task) + financial tiles
   const statusCards = dash ? [
-    { label: "Pending Tickets", value: dash.pendingTickets, sub: "Support tickets that are pending", icon: Ticket, grad: "from-rose-500 to-red-600" },
-    { label: "Processing Tickets", value: dash.processingTickets, sub: "Support tickets that are processing", icon: RefreshCw, grad: "from-amber-500 to-orange-600" },
-    { label: "Pending Task", value: dash.pendingTasks, sub: "Created tasks that are pending", icon: ListTodo, grad: "from-rose-500 to-red-600" },
-    { label: "Processing Task", value: dash.processingTasks, sub: "Tasks that are processing", icon: RefreshCw, grad: "from-amber-500 to-orange-600" },
+    { label: "Pending Tickets", value: dash.pendingTickets, sub: "Support tickets that are pending", icon: Ticket, grad: "from-rose-500 to-red-600", to: "/support/tickets" },
+    { label: "Processing Tickets", value: dash.processingTickets, sub: "Support tickets that are processing", icon: RefreshCw, grad: "from-amber-500 to-orange-600", to: "/support/tickets" },
+    { label: "Pending Task", value: dash.pendingTasks, sub: "Created tasks that are pending", icon: ListTodo, grad: "from-rose-500 to-red-600", to: "/tasks" },
+    { label: "Processing Task", value: dash.processingTasks, sub: "Tasks that are processing", icon: RefreshCw, grad: "from-amber-500 to-orange-600", to: "/tasks" },
   ] : [];
 
   const G = { sky: "from-sky-500 to-blue-600", teal: "from-teal-500 to-emerald-600", violet: "from-violet-500 to-purple-600", slate: "from-slate-600 to-slate-800" };
   const financialTiles = ov ? [
-    { label: "Monthly Bill", value: ov.monthlyBill, sub: "Current month total customer bill", icon: Calendar, grad: G.sky },
-    { label: "Collected Bill", value: ov.collectedBill, sub: "Current month total received", icon: CheckCircle2, grad: G.teal },
-    { label: "Discount", value: ov.discount, sub: "Current month total discount", icon: Percent, grad: G.violet },
-    { label: "Total Due", value: ov.totalDue, sub: "Total due bill of client", icon: AlertTriangle, grad: G.slate },
-    { label: "Service Sales Invoice", value: ov.serviceSalesInvoice, sub: "Installation fee & service sales", icon: HandCoins, grad: G.sky },
-    { label: "Product Sales Invoice", value: ov.productSalesInvoice, sub: "Current month product sales", icon: TrendingUp, grad: G.teal },
-    { label: "Income", value: ov.income, sub: "Current month total income", icon: ArrowUpRight, grad: G.violet },
-    { label: "Expense", value: ov.expense, sub: "Current month total expense", icon: ArrowDownRight, grad: G.slate },
-    { label: "Credited Amount", value: ov.creditedAmount, sub: "Monthly credited amount of POPs", icon: Coins, grad: G.sky },
-    { label: "POP Fund", value: ov.popFund, sub: "Monthly given fund to POPs", icon: PiggyBank, grad: G.teal },
-    { label: "POP Bill", value: ov.popBill, sub: "Monthly received amount from POPs", icon: Receipt, grad: G.violet },
-    { label: "Receivable Amount", value: ov.receivableAmount, sub: "Monthly receivable from POPs", icon: Banknote, grad: G.slate },
-    { label: "B.Width Provider Bill", value: ov.bwProviderBill, sub: "Monthly paid to B.Width providers", icon: Server, grad: G.sky },
-    { label: "B.Width Provider Due", value: ov.bwProviderDue, sub: "All over B.Width providers payable", icon: Server, grad: G.teal },
-    { label: "B.Width POP Bill", value: ov.bwPopBill, sub: "Monthly received from B.Width POPs", icon: Server, grad: G.violet },
-    { label: "Paid Salary", value: ov.paidSalary, sub: "Current month total paid salary", icon: DollarSign, grad: G.slate },
-    { label: "SMS Balance", value: ov.smsBalance, sub: "This is your total SMS balance", icon: MessageSquare, grad: G.sky, raw: true },
-    { label: "Purchase Payable Due", value: ov.purchasePayableDue, sub: "All over inventory purchase payable", icon: ShoppingCart, grad: G.teal },
-    { label: "Purchase Paid Amount", value: ov.purchasePaidAmount, sub: "Current month inventory purchase paid", icon: ShoppingCart, grad: G.violet },
-    { label: "Cash On Hand", value: ov.cashOnHand, sub: "Current month total CashOnHand", icon: Wallet, grad: G.slate },
+    { label: "Monthly Bill", value: ov.monthlyBill, sub: "Current month total customer bill", icon: Calendar, grad: G.sky, to: "/billing/list" },
+    { label: "Collected Bill", value: ov.collectedBill, sub: "Current month total received", icon: CheckCircle2, grad: G.teal, to: "/billing/collection" },
+    { label: "Discount", value: ov.discount, sub: "Current month total discount", icon: Percent, grad: G.violet, to: "/report/discount" },
+    { label: "Total Due", value: ov.totalDue, sub: "Total due bill of client", icon: AlertTriangle, grad: G.slate, to: "/clients/due" },
+    { label: "Service Sales Invoice", value: ov.serviceSalesInvoice, sub: "Installation fee & service sales", icon: HandCoins, grad: G.sky, to: "/sales/service" },
+    { label: "Product Sales Invoice", value: ov.productSalesInvoice, sub: "Current month product sales", icon: TrendingUp, grad: G.teal, to: "/sales/product" },
+    { label: "Income", value: ov.income, sub: "Current month total income", icon: ArrowUpRight, grad: G.violet, to: "/acc/income" },
+    { label: "Expense", value: ov.expense, sub: "Current month total expense", icon: ArrowDownRight, grad: G.slate, to: "/acc/expense" },
+    { label: "Credited Amount", value: ov.creditedAmount, sub: "Monthly credited amount of POPs", icon: Coins, grad: G.sky, to: "/acc/transactions" },
+    { label: "POP Fund", value: ov.popFund, sub: "Monthly given fund to POPs", icon: PiggyBank, grad: G.teal, to: "/acc/transactions" },
+    { label: "POP Bill", value: ov.popBill, sub: "Monthly received amount from POPs", icon: Receipt, grad: G.violet, to: "/acc/transactions" },
+    { label: "Receivable Amount", value: ov.receivableAmount, sub: "Monthly receivable from POPs", icon: Banknote, grad: G.slate, to: "/acc/transactions" },
+    { label: "B.Width Provider Bill", value: ov.bwProviderBill, sub: "Monthly paid to B.Width providers", icon: Server, grad: G.sky, to: "/bwbuy/bills" },
+    { label: "B.Width Provider Due", value: ov.bwProviderDue, sub: "All over B.Width providers payable", icon: Server, grad: G.teal, to: "/bwbuy/bills" },
+    { label: "B.Width POP Bill", value: ov.bwPopBill, sub: "Monthly received from B.Width POPs", icon: Server, grad: G.violet, to: "/bwbuy/bills" },
+    { label: "Paid Salary", value: ov.paidSalary, sub: "Current month total paid salary", icon: DollarSign, grad: G.slate, to: "/hr/salary-sheet" },
+    { label: "SMS Balance", value: ov.smsBalance, sub: "This is your total SMS balance", icon: MessageSquare, grad: G.sky, raw: true, to: "/sms/gateway" },
+    { label: "Purchase Payable Due", value: ov.purchasePayableDue, sub: "All over inventory purchase payable", icon: ShoppingCart, grad: G.teal, to: "/purchase/bills" },
+    { label: "Purchase Paid Amount", value: ov.purchasePaidAmount, sub: "Current month inventory purchase paid", icon: ShoppingCart, grad: G.violet, to: "/purchase/bills" },
+    { label: "Cash On Hand", value: ov.cashOnHand, sub: "Current month total CashOnHand", icon: Wallet, grad: G.slate, to: "/acc/cash-book" },
   ] : [];
   const maxNew = ov ? Math.max(...ov.monthlyNewClient.map((m) => m.count), 1) : 1;
 
@@ -129,7 +131,13 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((s, i) => (
-          <motion.div key={s.label} custom={i} variants={fade} initial="hidden" animate="show" className="card p-5">
+          <motion.div
+            key={s.label} custom={i} variants={fade} initial="hidden" animate="show"
+            onClick={() => s.to && navigate(s.to)}
+            className={`card cursor-pointer p-5 transition hover:shadow-lg hover:ring-1 hover:ring-gold-500/30 ${s.to ? "active:scale-[0.98]" : ""}`}
+            role={s.to ? "button" : undefined} tabIndex={s.to ? 0 : undefined}
+            onKeyDown={(e) => { if (s.to && (e.key === "Enter" || e.key === " ")) navigate(s.to); }}
+          >
             <div className="flex items-start justify-between">
               <div className={`grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br ${s.color} text-white shadow-lg`}>
                 <s.icon size={20} />
@@ -151,28 +159,34 @@ export default function Dashboard() {
       {dash && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {[
-            ["Total Client", dash.total, "text-sky-500"],
-            ["Running", dash.running, "text-emerald-500"],
-            ["Inactive", dash.inactive, "text-slate-400"],
-            ["New (month)", dash.newClient, "text-indigo-500"],
-            ["Left", dash.left, "text-rose-500"],
-            ["Paid", dash.paid, "text-emerald-500"],
-            ["Unpaid", dash.unpaid, "text-amber-500"],
-            ["Due", dash.due, "text-amber-500"],
-            ["Expired", dash.expired, "text-rose-500"],
-            ["Suspended", dash.suspended, "text-slate-400"],
-            ["Online", dash.online, "text-emerald-500"],
-            ["Blocked", dash.blocked, "text-rose-500"],
-            ["Bill Date Expire", dash.billExpire, "text-amber-500"],
-            ["Unpaid Extension", dash.unpaidExtension, "text-amber-500"],
-            ["Total POP", dash.totalPop, "text-sky-500"],
-            ["POP Clients", dash.popClients, "text-indigo-500"],
-            ["Pending Tickets", dash.pendingTickets, "text-rose-500"],
-            ["Processing Tickets", dash.processingTickets, "text-amber-500"],
-            ["Pending Tasks", dash.pendingTasks, "text-rose-500"],
-            ["Processing Tasks", dash.processingTasks, "text-amber-500"],
-          ].map(([label, value, color], i) => (
-            <motion.div key={label} custom={i} variants={fade} initial="hidden" animate="show" className="card p-3.5">
+            ["Total Client", dash.total, "text-sky-500", "/clients"],
+            ["Running", dash.running, "text-emerald-500", "/clients?status=active"],
+            ["Inactive", dash.inactive, "text-slate-400", "/clients?status=inactive"],
+            ["New (month)", dash.newClient, "text-indigo-500", "/clients/new-request"],
+            ["Left", dash.left, "text-rose-500", "/clients/left"],
+            ["Paid", dash.paid, "text-emerald-500", "/billing/collection"],
+            ["Unpaid", dash.unpaid, "text-amber-500", "/clients/due"],
+            ["Due", dash.due, "text-amber-500", "/clients/due"],
+            ["Expired", dash.expired, "text-rose-500", "/clients?status=expired"],
+            ["Suspended", dash.suspended, "text-slate-400", "/clients?status=suspended"],
+            ["Online", dash.online, "text-emerald-500", "/clients?online=1"],
+            ["Blocked", dash.blocked, "text-rose-500", "/clients?online=0"],
+            ["Bill Date Expire", dash.billExpire, "text-amber-500", "/billing/list"],
+            ["Unpaid Extension", dash.unpaidExtension, "text-amber-500", "/billing/list"],
+            ["Total POP", dash.totalPop, "text-sky-500", "/network-diagram/pop"],
+            ["POP Clients", dash.popClients, "text-indigo-500", "/network-diagram/clients"],
+            ["Pending Tickets", dash.pendingTickets, "text-rose-500", "/support/tickets"],
+            ["Processing Tickets", dash.processingTickets, "text-amber-500", "/support/tickets"],
+            ["Pending Tasks", dash.pendingTasks, "text-rose-500", "/tasks"],
+            ["Processing Tasks", dash.processingTasks, "text-amber-500", "/tasks"],
+          ].map(([label, value, color, to], i) => (
+            <motion.div
+              key={label} custom={i} variants={fade} initial="hidden" animate="show"
+              onClick={() => to && navigate(to)}
+              className={`card cursor-pointer p-3.5 transition hover:shadow-md hover:ring-1 hover:ring-gold-500/20 active:scale-[0.98]`}
+              role="button" tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate(to); }}
+            >
               <p className={`font-display text-xl font-bold ${color}`}>{value}</p>
               <p className="mt-0.5 text-[11px] text-slate-400">{label}</p>
             </motion.div>
@@ -183,8 +197,13 @@ export default function Dashboard() {
       {statusCards.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {statusCards.map((s, i) => (
-            <motion.div key={s.label} custom={i} variants={fade} initial="hidden" animate="show"
-              className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${s.grad} p-5 text-white shadow-lg`}>
+            <motion.div
+              key={s.label} custom={i} variants={fade} initial="hidden" animate="show"
+              onClick={() => s.to && navigate(s.to)}
+              className={`relative cursor-pointer overflow-hidden rounded-2xl bg-gradient-to-br ${s.grad} p-5 text-white shadow-lg transition hover:shadow-xl hover:brightness-[1.05] active:scale-[0.98]`}
+              role="button" tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate(s.to); }}
+            >
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-semibold opacity-90">{s.label}</p>
@@ -201,8 +220,13 @@ export default function Dashboard() {
       {financialTiles.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {financialTiles.map((t, i) => (
-            <motion.div key={t.label} custom={i} variants={fade} initial="hidden" animate="show"
-              className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${t.grad} p-4 text-white shadow-lg`}>
+            <motion.div
+              key={t.label} custom={i} variants={fade} initial="hidden" animate="show"
+              onClick={() => t.to && navigate(t.to)}
+              className={`relative cursor-pointer overflow-hidden rounded-2xl bg-gradient-to-br ${t.grad} p-4 text-white shadow-lg transition hover:shadow-xl hover:brightness-[1.05] active:scale-[0.98]`}
+              role="button" tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate(t.to); }}
+            >
               <div className="flex items-center gap-3">
                 <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/20"><t.icon size={20} /></div>
                 <div className="min-w-0">
@@ -247,7 +271,12 @@ export default function Dashboard() {
                 </thead>
                 <tbody>
                   {ov.topUnpaid.map((c) => (
-                    <tr key={c.id} className="border-t border-slate-100 dark:border-white/5">
+                    <tr
+                      key={c.id}
+                      onClick={() => navigate(`/clients?search=${encodeURIComponent(c.phone || c.name)}`)}
+                      className="cursor-pointer border-t border-slate-100 transition hover:bg-gold-500/5 dark:border-white/5"
+                      title="View client"
+                    >
                       <td className="px-4 py-2.5 font-medium text-slate-700 dark:text-slate-200">{c.name}</td>
                       <td className="px-4 py-2.5 text-slate-500">{c.phone}</td>
                       <td className="px-4 py-2.5 text-right font-semibold text-rose-500">{fmt(c.due)}</td>
@@ -318,7 +347,12 @@ export default function Dashboard() {
             <p className="mb-2 text-xs font-semibold text-slate-400">EXPIRING SOON</p>
             <div className="space-y-2">
               {expiring.map((c) => (
-                <div key={c.id} className="flex items-center justify-between text-sm">
+                <div
+                  key={c.id}
+                  onClick={() => navigate(`/clients?search=${encodeURIComponent(c.name)}`)}
+                  className="flex cursor-pointer items-center justify-between rounded-lg px-2 py-1.5 text-sm transition hover:bg-gold-500/10"
+                  title="View client"
+                >
                   <span className="text-slate-600 dark:text-slate-300">{c.name}</span>
                   <span className="text-xs text-amber-500">{c.expiry}</span>
                 </div>
@@ -329,9 +363,10 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
-      <motion.div custom={6} variants={fade} initial="hidden" animate="show" className="card overflow-hidden">
+      <motion.div custom={6} variants={fade} initial="hidden" animate="show" className="card cursor-pointer overflow-hidden transition hover:shadow-md hover:ring-1 hover:ring-gold-500/20" onClick={() => navigate("/payments")} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate("/payments"); }}>
         <div className="flex items-center justify-between p-5">
           <h3 className="font-display font-semibold text-slate-800 dark:text-white">Recent Payments</h3>
+          <span className="text-xs font-semibold text-gold-500">View all →</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
