@@ -243,6 +243,34 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Company Performance (Active Client) — competitor-style */}
+      {ov?.companyPerformance && (
+        <motion.div variants={fade} initial="hidden" animate="show" className="card p-5">
+          <h3 className="font-display font-semibold text-slate-800 dark:text-white">Company Performance (Active Client)</h3>
+          <div className="mt-4 flex h-56 items-end gap-2">
+            {(() => {
+              const max = Math.max(...ov.companyPerformance.map((m) => m.count), 1);
+              const niceMax = Math.ceil(max / 100) * 100 || 500;
+              const cols = ["from-sky-500 to-cyan-400", "from-violet-500 to-purple-400", "from-slate-400 to-slate-500", "from-emerald-500 to-teal-400"];
+              return ov.companyPerformance.map((m, i) => (
+                <div key={i} className="group flex flex-1 flex-col items-center gap-1">
+                  <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">{m.count || 0}</span>
+                  <motion.div
+                    initial={{ height: 0 }} animate={{ height: `${Math.max((m.count / niceMax) * 100, 2)}%` }}
+                    transition={{ delay: 0.15 + i * 0.04, duration: 0.5, ease: "easeOut" }}
+                    className={`w-full rounded-t bg-gradient-to-t ${cols[i % cols.length]}`}
+                  />
+                  <span className="text-[11px] text-slate-400">{m.label}</span>
+                </div>
+              ));
+            })()}
+          </div>
+          <div className="mt-2 flex justify-between text-[10px] text-slate-400">
+            <span>0</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span>
+          </div>
+        </motion.div>
+      )}
+
       {ov && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <motion.div custom={0} variants={fade} initial="hidden" animate="show" className="card p-5 lg:col-span-2">
