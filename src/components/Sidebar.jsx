@@ -73,9 +73,10 @@ const menu = [
     { to: "/hr/rejoin", label: "Rejoin" },
     { to: "/hr/attendance", label: "Attendance" },
   ]},
-  { icon: Server, label: "OLT Management", adminOnly: true, children: [
-    { to: "/olt", label: "Olt" },
-    { to: "/olt/users", label: "Olt Users" },
+  { icon: Server, label: "OLT & Tools", adminOnly: true, children: [
+    { to: "/olt", label: "OLT List" },
+    { to: "/olt/tools", label: "OLT Tools" },
+    { to: "/olt/mac-table", label: "OLT MAC Table" },
   ]},
   { icon: Network, label: "Network Diagram", adminOnly: true, children: [
     { to: "/network-diagram", label: "Diagram" },

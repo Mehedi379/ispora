@@ -56,6 +56,8 @@ const HrPayroll = lazy(() => import("./pages/HrPayroll"));
 const HrPayslips = lazy(() => import("./pages/HrPayslips"));
 const HrSalarySheet = lazy(() => import("./pages/HrSalarySheet"));
 const OltDevices = lazy(() => import("./pages/OltDevices"));
+const OltTools = lazy(() => import("./pages/OltTools"));
+const OltMacTable = lazy(() => import("./pages/OltMacTable"));
 const OltUsers = lazy(() => import("./pages/OltUsers"));
 const NetworkDiagram = lazy(() => import("./pages/NetworkDiagram"));
 const NetworkPop = lazy(() => import("./pages/NetworkPop"));
@@ -280,6 +282,8 @@ export default function App() {
                   <Route path="/hr/payslips" element={<AdminOnly><HrPayslips /></AdminOnly>} />
                   <Route path="/hr/salary-sheet" element={<AdminOnly><HrSalarySheet /></AdminOnly>} />
                   <Route path="/olt" element={<AdminOnly><OltDevices /></AdminOnly>} />
+                  <Route path="/olt/tools" element={<AdminOnly><OltTools /></AdminOnly>} />
+                  <Route path="/olt/mac-table" element={<AdminOnly><OltMacTable /></AdminOnly>} />
                   <Route path="/olt/users" element={<AdminOnly><OltUsers /></AdminOnly>} />
                   <Route path="/network-diagram" element={<AdminOnly><NetworkDiagram /></AdminOnly>} />
                   <Route path="/network-diagram/pop" element={<AdminOnly><NetworkPop /></AdminOnly>} />
