@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Plus, Pencil, Trash2, Loader2, UserMinus, RotateCcw, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, UserMinus, RotateCcw, Eye, FileText, Calendar } from "lucide-react";
 import Modal from "../components/Modal";
 import Dropdown from "../components/Dropdown";
 import { useStore } from "../store";
@@ -27,6 +26,7 @@ export default function HrEmployees({ view = "list" }) {
   const [upazilas, setUpazilas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
+  const [status, setStatus] = useState("Active");
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({});
   const [toDelete, setToDelete] = useState(null);
@@ -34,12 +34,11 @@ export default function HrEmployees({ view = "list" }) {
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(null);
   const [err, setErr] = useState("");
-  const [params, setParams] = useSearchParams();
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const statusFilter = view === "rejoin" ? "resigned" : view === "resignation" ? undefined : undefined;
+      const statusFilter = view === "rejoin" ? "resigned" : view === "resignation" ? undefined : status === "All" ? undefined : status.toLowerCase();
       const [emps, d, p, dists, ups] = await Promise.all([
         api.hrList("employees", statusFilter ? { status: statusFilter } : {}),
         api.hrList("departments").catch(() => []),
@@ -50,14 +49,8 @@ export default function HrEmployees({ view = "list" }) {
       setRows(emps); setDepts(d); setPositions(p); setDistricts(dists); setUpazilas(ups); setErr("");
     } catch (e) { setErr(e?.message || "Load fail"); }
     finally { setLoading(false); }
-  }, [view]);
+  }, [view, status]);
   useEffect(() => { load(); }, [load]);
-
-  useEffect(() => {
-    if (params.get("new") && (view === "list" || view === "add")) {
-      setForm({}); setEditing({}); params.delete("new"); setParams(params, { replace: true });
-    }
-  }, [params, view, setParams]);
 
   const F = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
@@ -100,23 +93,97 @@ export default function HrEmployees({ view = "list" }) {
   const base = view === "rejoin" ? rows.filter((e) => e.status === "resigned")
     : view === "resignation" ? rows.filter((e) => e.status === "active")
     : rows;
-  const filtered = base.filter((e) => !q || `${e.name} ${e.phone} ${e.department} ${e.position}`.toLowerCase().includes(q.toLowerCase()));
-  const title = view === "resignation" ? "Resignation" : view === "rejoin" ? "Rejoin" : view === "add" ? "Add Employee" : "Employees";
-  const sub = view === "resignation" ? "Active employee resign koran" : view === "rejoin" ? "Resigned employee abar rejoin koran" : view === "add" ? "Notun employee er sob tottho din" : "Shob employee";
+  const filtered = base.filter((e) => {
+    if (view === "list" && status !== "All" && e.status.toLowerCase() !== status.toLowerCase()) return false;
+    if (!q || `${e.name} ${e.phone} ${e.department} ${e.position} ${e.employeeCode || ""}`.toLowerCase().includes(q.toLowerCase())) return false;
+    return true;
+  });
+  const title = view === "resignation" ? "Resignation" : view === "rejoin" ? "Rejoin" : view === "add" ? "Add Employee" : "Employee List";
+  const sub = view === "resignation" ? "Active employee resign koran" : view === "rejoin" ? "Resigned employee abar rejoin koran" : view === "add" ? "Notun employee er sob tottho din" : "View All Employees";
   const showAddBtn = view === "list" || view === "add";
 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div><h2 className="font-display text-2xl font-bold text-slate-800 dark:text-white">{title}</h2><p className="text-sm text-slate-400">{sub}</p></div>
+        <h2 className="font-display text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+          <span className="text-navy-900 dark:text-white">👥</span> {title} <span className="text-sm font-normal text-slate-400">{sub}</span>
+        </h2>
         {showAddBtn && <button onClick={openNew} className="btn-gold"><Plus size={16} /> Add Employee</button>}
       </div>
-      <div className="relative max-w-sm">
-        <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input className={`${input} pl-9`} placeholder="Search..." value={q} onChange={(e) => setQ(e.target.value)} />
-      </div>
+
+      {view === "list" && (
+        <div className="card p-4">
+          <label className="block max-w-xs">
+            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Status</span>
+            <Dropdown value={status} options={["Active", "All", "Resigned"]} onChange={setStatus} />
+          </label>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 dark:border-white/5">
+            <span className="flex items-center gap-1.5 text-xs text-slate-400">
+              SHOW <select className="rounded border border-slate-200 bg-white px-2 py-1 dark:border-white/10 dark:bg-navy-800" defaultValue={100}><option>100</option><option>25</option><option>50</option></select> ENTRIES
+            </span>
+            <span className="flex items-center gap-1.5 text-xs text-slate-400">
+              SEARCH: <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="" className="rounded border border-slate-200 bg-white px-2 py-1 text-sm dark:border-white/10 dark:bg-navy-800" />
+            </span>
+          </div>
+        </div>
+      )}
+
+      {view !== "list" && (
+        <div className="relative max-w-sm">
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search..." className={`${input} pl-9`} />
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">⌕</span>
+        </div>
+      )}
       {err && !editing && <p className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-500">{err}</p>}
-      {loading ? <div className="grid place-items-center py-20"><Loader2 className="animate-spin text-gold-500" /></div> : (
+
+      {loading ? <div className="grid place-items-center py-20"><Loader2 className="animate-spin text-gold-500" /></div> : view === "list" ? (
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full whitespace-nowrap text-left text-xs">
+              <thead className="bg-navy-900 text-[11px] uppercase tracking-wide text-slate-300">
+                <tr>
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">ID</th>
+                  <th className="px-4 py-3">Mobile No.</th>
+                  <th className="px-4 py-3">Office No.</th>
+                  <th className="px-4 py-3">Comment</th>
+                  <th className="px-4 py-3">Department</th>
+                  <th className="px-4 py-3">Designation</th>
+                  <th className="px-4 py-3">Position Name</th>
+                  <th className="px-4 py-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((e, i) => (
+                  <motion.tr key={e.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i * 0.02, 0.3) }} className="border-t border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5">
+                    <td className="px-4 py-3 font-medium text-slate-700 dark:text-slate-200">{e.name}</td>
+                    <td className="px-4 py-3 font-mono text-slate-500">{e.employeeCode || `E${String(e.id).padStart(4, "0")}`}</td>
+                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{e.phone || "—"}</td>
+                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{e.officeContact || e.phone || "—"}</td>
+                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{e.comment || "—"}</td>
+                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{e.department || "—"}</td>
+                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{e.position || "—"}</td>
+                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{e.position || "—"}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-1">
+                        <button title="View" className="rounded p-1.5 text-sky-500 hover:bg-sky-500/10"><Eye size={13} /></button>
+                        <button onClick={() => openEdit(e)} title="Edit" className="rounded p-1.5 text-emerald-500 hover:bg-emerald-500/10"><Pencil size={13} /></button>
+                        <button title="Documents" className="rounded p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5"><FileText size={13} /></button>
+                        <button title="Salary" className="rounded p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5"><Calendar size={13} /></button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))}
+                {filtered.length === 0 && <tr><td colSpan={9} className="py-12 text-center text-sm text-slate-400">Kono employee nei.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-xs text-slate-400 dark:border-white/5">
+            <span>Showing 1 to {filtered.length} of {filtered.length} entries</span>
+            <span>Previous &nbsp; <span className="rounded bg-navy-900 px-2 py-1 text-white">1</span> &nbsp; Next</span>
+          </div>
+        </div>
+      ) : (
         <div className="card overflow-hidden"><div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 dark:bg-white/5 text-left text-xs uppercase tracking-wide text-slate-400"><tr>
