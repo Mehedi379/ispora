@@ -878,7 +878,12 @@ model LeaveApplication {
   fromDate   DateTime
   toDate     DateTime
   days       Int           @default(1)
+  subject    String?
   reason     String?
+  // Attachment file (max 2 MB) — list query-te omit kora hoy, shudhu download-e load
+  attachmentName String?
+  attachmentType String?
+  attachmentData Bytes?
   status     String        @default("pending") // pending | approved | rejected
   createdAt  DateTime      @default(now())
   employee   Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)

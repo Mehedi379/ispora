@@ -59,6 +59,9 @@ const origins = process.env.CLIENT_ORIGIN?.split(",").map((s) => s.trim()).filte
 // origin match kore na → CORS header ashe na). Specific list hole oi list-i allow.
 const corsOrigin = (!origins?.length || origins.includes("*")) ? "*" : origins;
 app.use(cors({ origin: corsOrigin }));
+// Leave attachment (max 2 MB file, base64-e ~2.7 MB) — shudhu ei path-e boro body limit;
+// age parse hole niche global express.json() skip kore
+app.use("/api/leave/applications", express.json({ limit: "3mb" }));
 app.use(express.json());
 // SSLCOMMERZ IPN form-encoded POST kore — tai urlencoded-o parse kori
 app.use(express.urlencoded({ extended: true }));

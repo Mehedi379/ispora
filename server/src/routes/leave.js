@@ -56,15 +56,36 @@ r.delete("/setup/:id", admin, async (req, res) => {
 });
 
 // ---------- Applications (Apply + Approval) ----------
+// Attachment: max 2 MB, shudhu ei type gula (type extension theke nei, client-er type trust kori na)
+const ATTACH_TYPES = {
+  pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif",
+  doc: "application/msword", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+};
+const MAX_ATTACH = 2 * 1024 * 1024;
+const noBlob = { attachmentData: true }; // list/update response-e file bytes load korbo na
+const withRel = { employee: true, category: true };
+
+// body.attachment = { name, data (base64) } -> { fields } ba { error }
+function parseAttachment(att) {
+  const name = clean(String(att?.name || "").split(/[\\/]/).pop(), 150);
+  const type = ATTACH_TYPES[name?.split(".").pop().toLowerCase()];
+  if (!name || !type) return { error: "Attachment: shudhu PDF, JPG, PNG, WEBP, GIF, DOC, DOCX file din" };
+  const buf = Buffer.from(String(att?.data || ""), "base64");
+  if (!buf.length) return { error: "Attachment file khali" };
+  if (buf.length > MAX_ATTACH) return { error: "Attachment 2 MB-er beshi hote parbe na" };
+  return { fields: { attachmentName: name, attachmentType: type, attachmentData: buf } };
+}
+
 const appShape = (a) => ({
   id: a.id, employeeId: a.employeeId, employee: a.employee?.name || "",
   categoryId: a.categoryId, category: a.category?.name || "",
-  applyDate: ymd(a.createdAt), fromDate: ymd(a.fromDate), toDate: ymd(a.toDate), days: a.days, reason: a.reason || "", status: a.status,
+  applyDate: ymd(a.createdAt), fromDate: ymd(a.fromDate), toDate: ymd(a.toDate), days: a.days,
+  subject: a.subject || "", reason: a.reason || "", attachmentName: a.attachmentName || "", status: a.status,
 });
 r.get("/applications", async (req, res) => {
   const where = {};
   if (req.query.status) where.status = String(req.query.status);
-  const list = await prisma.leaveApplication.findMany({ where, include: { employee: true, category: true }, orderBy: { id: "desc" } });
+  const list = await prisma.leaveApplication.findMany({ where, include: withRel, omit: noBlob, orderBy: { id: "desc" } });
   res.json(list.map(appShape));
 });
 r.post("/applications", admin, async (req, res) => {
@@ -74,18 +95,33 @@ r.post("/applications", admin, async (req, res) => {
   if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return res.status(400).json({ error: "Date thik na" });
   if (to < from) return res.status(400).json({ error: "To date From-er age hote parbe na" });
   const days = Math.floor((to - from) / 86400000) + 1;
+  let file = {};
+  if (req.body?.attachment) {
+    const p = parseAttachment(req.body.attachment);
+    if (p.error) return res.status(400).json({ error: p.error });
+    file = p.fields;
+  }
   const a = await prisma.leaveApplication.create({
-    data: { employeeId, categoryId, fromDate: from, toDate: to, days, reason: clean(req.body?.reason, 300) },
-    include: { employee: true, category: true },
+    data: { employeeId, categoryId, fromDate: from, toDate: to, days, subject: clean(req.body?.subject, 150), reason: clean(req.body?.reason, 300), ...file },
+    include: withRel, omit: noBlob,
   });
   res.status(201).json(appShape(a));
 });
+// Attachment download — findFirst tenant-scoped, tai onno ISP-er file paowa jabe na
+r.get("/applications/:id/attachment", admin, async (req, res) => {
+  const a = await prisma.leaveApplication.findFirst({
+    where: { id: Number(req.params.id) },
+    select: { attachmentName: true, attachmentType: true, attachmentData: true },
+  });
+  if (!a?.attachmentData) return res.status(404).json({ error: "Attachment nei" });
+  res.json({ name: a.attachmentName, type: a.attachmentType, data: Buffer.from(a.attachmentData).toString("base64") });
+});
 r.post("/applications/:id/approve", admin, async (req, res) => {
-  try { res.json(appShape(await prisma.leaveApplication.update({ where: { id: Number(req.params.id) }, data: { status: "approved" }, include: { employee: true, category: true } }))); }
+  try { res.json(appShape(await prisma.leaveApplication.update({ where: { id: Number(req.params.id) }, data: { status: "approved" }, include: withRel, omit: noBlob }))); }
   catch { res.status(400).json({ error: "Update failed" }); }
 });
 r.post("/applications/:id/reject", admin, async (req, res) => {
-  try { res.json(appShape(await prisma.leaveApplication.update({ where: { id: Number(req.params.id) }, data: { status: "rejected" }, include: { employee: true, category: true } }))); }
+  try { res.json(appShape(await prisma.leaveApplication.update({ where: { id: Number(req.params.id) }, data: { status: "rejected" }, include: withRel, omit: noBlob }))); }
   catch { res.status(400).json({ error: "Update failed" }); }
 });
 r.delete("/applications/:id", admin, async (req, res) => {

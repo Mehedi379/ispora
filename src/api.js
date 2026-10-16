@@ -268,6 +268,7 @@ export const api = {
   leaveApply: (body) => req("/leave/applications", { method: "POST", body }),
   leaveApprove: (id) => req(`/leave/applications/${id}/approve`, { method: "POST" }),
   leaveReject: (id) => req(`/leave/applications/${id}/reject`, { method: "POST" }),
+  leaveAttachment: (id) => req(`/leave/applications/${id}/attachment`),
 
   // Events & Holidays
   eventsList: (params = {}) => { const s = qs(params); return req(`/events${s ? `?${s}` : ""}`); },
