@@ -59,7 +59,7 @@ r.delete("/setup/:id", admin, async (req, res) => {
 const appShape = (a) => ({
   id: a.id, employeeId: a.employeeId, employee: a.employee?.name || "",
   categoryId: a.categoryId, category: a.category?.name || "",
-  fromDate: ymd(a.fromDate), toDate: ymd(a.toDate), days: a.days, reason: a.reason || "", status: a.status,
+  applyDate: ymd(a.createdAt), fromDate: ymd(a.fromDate), toDate: ymd(a.toDate), days: a.days, reason: a.reason || "", status: a.status,
 });
 r.get("/applications", async (req, res) => {
   const where = {};
