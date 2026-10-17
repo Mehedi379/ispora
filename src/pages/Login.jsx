@@ -1,16 +1,16 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, Lock, LogIn, Loader2 } from "lucide-react";
+import { Mail, Lock, LogIn, Loader2, UserPlus } from "lucide-react";
 import { useStore } from "../store";
 import { BRAND } from "../data";
 import { LogoMark } from "../components/Logo";
 
 export default function Login() {
   const { login } = useStore();
-  // Demo credential prefill/printage chilo — production-e public login page-e
-  // sheta sekondi kache admin account khule dito. Kew ekhon only UI theke janbe na.
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(true);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -48,6 +48,15 @@ export default function Login() {
               className="w-full rounded-xl border border-white/10 bg-navy-800 py-2.5 pl-10 pr-3 text-sm text-white placeholder-slate-500 outline-none focus:border-gold-500/60" />
           </div>
 
+          {/* Remember Me + Forgot Password */}
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 text-xs text-slate-400">
+              <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="h-3 w-3 rounded border-white/20 text-gold-500 focus:ring-gold-500/40" />
+              Remember me
+            </label>
+            <Link to="/forgot-password" className="text-xs text-gold-400 hover:underline">Forgot Password?</Link>
+          </div>
+
           {err && <p className="rounded-lg bg-rose-500/10 px-3 py-2 text-xs text-rose-400">{err}</p>}
 
           <button type="submit" disabled={busy}
@@ -56,6 +65,15 @@ export default function Login() {
             {busy ? "Login hocche..." : "Login"}
           </button>
         </form>
+
+        {/* Client Registration */}
+        <div className="mt-4 border-t border-white/10 pt-4">
+          <Link to="/client-registration"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-2.5 text-sm font-medium text-slate-300 transition hover:border-gold-500/40 hover:text-gold-300">
+            <UserPlus size={16} />
+            Client Registration
+          </Link>
+        </div>
 
       </motion.div>
     </div>

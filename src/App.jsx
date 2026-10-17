@@ -24,6 +24,8 @@ const Network = lazy(() => import("./pages/Network"));
 const Login = lazy(() => import("./pages/Login"));
 const Landing = lazy(() => import("./pages/Landing"));
 const Signup = lazy(() => import("./pages/Signup"));
+const ClientRegistration = lazy(() => import("./pages/ClientRegistration"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const LockScreen = lazy(() => import("./pages/LockScreen"));
 const PaySuccess = lazy(() => import("./pages/PaySuccess"));
 const PlatformPlans = lazy(() => import("./pages/PlatformPlans"));
@@ -174,6 +176,8 @@ export default function App() {
       <Suspense fallback={<div className="grid min-h-screen place-items-center bg-navy-950"><Loader2 size={28} className="animate-spin text-gold-500" /></div>}>
         <Routes>
           <Route path="/signup" element={<Signup />} />
+          <Route path="/client-registration" element={<ClientRegistration />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<Landing />} />
           <Route path="*" element={<Landing />} />

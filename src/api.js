@@ -53,6 +53,9 @@ export const api = {
   // auth
   login: (email, password) => req("/auth/login", { method: "POST", body: { email, password }, auth: false }),
   signup: (body) => req("/auth/signup", { method: "POST", body, auth: false }),
+  clientRegister: (body) => req("/client-portal/register", { method: "POST", body, auth: false }),
+  forgotPassword: (email) => req("/client-portal/forgot-password", { method: "POST", body: { email }, auth: false }),
+  resetPassword: (token, password) => req("/client-portal/reset-password", { method: "POST", body: { token, password }, auth: false }),
   publicPlans: () => req("/public/plans", { auth: false }),
   me: () => req("/auth/me"),
   entitlements: () => req("/auth/entitlements"),
@@ -190,6 +193,7 @@ export const api = {
   // configuration lookups (zones, sub-zones, boxes, connection-types, client-types,
   // protocol-types, billing-statuses, districts, upazilas)
   listConfig: (entity) => req(`/config/${entity}`),
+  listZones: () => req("/config/zones"),
   createConfig: (entity, body) => req(`/config/${entity}`, { method: "POST", body }),
   updateConfig: (entity, id, body) => req(`/config/${entity}/${id}`, { method: "PUT", body }),
   deleteConfig: (entity, id) => req(`/config/${entity}/${id}`, { method: "DELETE" }),

@@ -22,6 +22,7 @@ import billingRoutes from "./routes/billing.js";
 import changeRequestRoutes from "./routes/changeRequests.js";
 import scheduleRoutes from "./routes/schedules.js";
 import portalRoutes from "./routes/portal.js";
+import clientPortalRoutes from "./routes/clientPortal.js";
 import mikrotikRoutes from "./routes/mikrotik.js";
 import hrRoutes from "./routes/hr.js";
 import oltRoutes from "./routes/olt.js";
@@ -84,6 +85,7 @@ app.get("/api/health", (_req, res) => res.json({ ok: true, name: "ISPora API", t
 
 app.use("/api/public", publicRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/client-portal", clientPortalRoutes);
 app.use("/api/clients", clientRoutes);
 app.use("/api/packages", packageRoutes);
 app.use("/api/invoices", invoiceRoutes);
