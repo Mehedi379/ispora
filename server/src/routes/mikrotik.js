@@ -3,6 +3,7 @@ import { prisma } from "../db.js";
 import { requireAuth, requireRole } from "../auth.js";
 import { encrypt } from "../mikrotik/crypto.js";
 import { getAdapter, adapterError } from "../mikrotik/index.js";
+import { syncPppoeOnline } from "../statusSweep.js";
 
 const r = Router();
 r.use(requireAuth);
@@ -111,6 +112,19 @@ r.post("/servers/:id/test", async (req, res) => {
     await prisma.netDevice.update({ where: { id: s.id }, data: { connected: false, status: "offline" } });
     audit(req, "server.test", `id=${s.id} FAIL`);
     res.status(400).json({ ...adapterError(e), simulated: s.mode !== "real" });
+  }
+});
+
+// ---------- Sync client.online from real router active sessions ----------
+// "Sync Clients & Servers" button er backend — real Mikrotik-der active PPPoE sessions
+// fetch kore matching client.online=true set kore.
+r.post("/sync/clients", async (req, res) => {
+  try {
+    const result = await syncPppoeOnline({ tenantId: req.user?.tenantId });
+    audit(req, "sync.clients", `updated=${result.updated} servers=${result.servers}`);
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    res.status(400).json({ error: e?.message || "Sync failed" });
   }
 });
 

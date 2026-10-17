@@ -3,6 +3,7 @@ import { nextInvoiceNumber } from "./numbering.js";
 import { ymd } from "./dates.js";
 import { runDueSchedules } from "./routes/schedules.js";
 import { runWithTenant } from "./tenantContext.js";
+import { getAdapter } from "./mikrotik/index.js";
 
 // Auto status + billing engine
 // Lifecycle (suspended = admin manual, ei engine touch kore na):
@@ -169,6 +170,50 @@ export function startStatusSweep() {
     runStatusSweep().catch((e) => console.error("[statusSweep] error:", e.message));
     runSaasBillingSweep().catch((e) => console.error("[saasBilling] error:", e.message));
   };
+  const runSync = () => {
+    syncPppoeOnline().catch((e) => console.error("[syncPppoe] error:", e.message));
+  };
   runAll();
+  runSync();
   setInterval(runAll, 12 * 60 * 60 * 1000);
+  // PPPoE sync — every 2h (real-time online status, not billing)
+  setInterval(runSync, 2 * 60 * 60 * 1000);
+}
+
+// ===== Real-time PPPoE online sync =====
+// Each real Mikrotik server-er /ppp/active/print theke logged-in usernames nei,
+// then client.online field sync kore — jate "off" dekhay kintu net chole tar moto noyon.
+// Manual on-demand trigger + 1h periodic optional.
+export async function syncPppoeOnline({ tenantId } = {}) {
+  // Multi-tenant: shudhu current tenant-er servers sync korte pari (AsyncLocalStorage context)
+  const servers = await prisma.netDevice.findMany({
+    where: { type: "mikrotik", mode: "real" },
+  });
+  if (!servers.length) return { updated: 0, servers: 0 };
+
+  let updated = 0;
+  const perServer = [];
+  for (const s of servers) {
+    try {
+      const adapter = getAdapter(s);
+      const active = await adapter.listActiveSessions();
+      if (!Array.isArray(active) || active.length === 0) {
+        perServer.push({ server: s.name, active: 0, matched: 0 });
+        continue;
+      }
+      const names = new Set(active.map((a) => a.name));
+      // Shudhu online=true clients update kori — offline clients remain offline unless active
+      const matched = await prisma.client.updateMany({
+        where: { deletedAt: null, leftAt: null, pppoe: { in: [...names] } },
+        data: { online: true },
+      });
+      updated += matched.count;
+      perServer.push({ server: s.name, active: active.length, matched: matched.count });
+    } catch (e) {
+      console.error(`[syncPppoe] server=${s.name} failed:`, e?.message || e);
+      perServer.push({ server: s.name, error: true, msg: e?.message || String(e) });
+    }
+  }
+  if (updated) console.log(`[syncPppoe] ${updated} client online=true synced`);
+  return { updated, servers: servers.length, perServer };
 }

@@ -116,6 +116,7 @@ export const api = {
 
   // MikroTik Server module (mock + real RouterOS)
   mtServers: () => req("/mikrotik/servers"),
+  mtSyncClients: () => req("/mikrotik/sync/clients", { method: "POST" }),
   mtCreateServer: (body) => req("/mikrotik/servers", { method: "POST", body }),
   mtUpdateServer: (id, body) => req(`/mikrotik/servers/${id}`, { method: "PUT", body }),
   mtDeleteServer: (id) => req(`/mikrotik/servers/${id}`, { method: "DELETE" }),

@@ -65,6 +65,25 @@ export class RealAdapter {
     }
   }
 
+  // Active (currently logged-in) PPPoE sessions — real-time reachability
+  async listActiveSessions() {
+    const conn = await this._conn();
+    try {
+      // /ppp/active/print lists currently connected users (no filter = all)
+      const rows = await conn.write("/ppp/active/print", []);
+      return rows.map((r) => ({
+        name: r.name,
+        address: r["address"] || "",
+        callerId: r["caller-id"] || "",
+        service: r.service || "",
+        profile: r.profile || "",
+        uptime: r.uptime || "",
+      }));
+    } finally {
+      conn.close();
+    }
+  }
+
   async setPppoeEnabled(name, enabled) {
     const conn = await this._conn();
     try {

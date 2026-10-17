@@ -69,6 +69,24 @@ export class MockAdapter {
     return { ok: true, simulated: true, name, disabled: s.disabled };
   }
 
+  // Active sessions — simulated as the non-disabled secrets (mock sessions are "logged in")
+  async listActiveSessions() {
+    await sleep(100);
+    checkReachable(this.cfg);
+    checkAuth(this.cfg);
+    return this._secrets
+      .filter((s) => !s.disabled)
+      .map((s) => ({
+        name: s.name,
+        address: s.address || "",
+        callerId: s.callerId || "",
+        service: s.service || "pppoe",
+        profile: s.profile || "",
+        uptime: "00:05:00",
+        simulated: true,
+      }));
+  }
+
   async createBackup(name) {
     await sleep(200);
     checkReachable(this.cfg);

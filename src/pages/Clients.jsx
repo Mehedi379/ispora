@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Search, Plus, Phone, Pencil, Trash2, Filter, UserMinus, Eye, EyeOff, FileSpreadsheet, FileText, ArrowRightLeft, Link2, Link2Off, ServerCog, Info, Check, X, Crown } from "lucide-react";
+import { Search, Plus, Phone, Pencil, Trash2, Filter, UserMinus, Eye, EyeOff, FileSpreadsheet, FileText, ArrowRightLeft, Link2, Link2Off, ServerCog, Info, Check, X, Crown, Loader2 } from "lucide-react";
 import Dropdown from "../components/Dropdown";
 import Modal from "../components/Modal";
 import ClientForm from "../components/ClientForm";
@@ -11,6 +11,7 @@ import { statusStyle } from "../data";
 
 export default function Clients({ filterStatus }) {
   const { clients, loading, addClient, updateClient, deleteClient, toggleLine, user, refreshClients, ent } = useStore();
+  const [syncing, setSyncing] = useState(false);
   const isAdmin = user?.role === "admin";
   const navigate = useNavigate();
   const [toLeft, setToLeft] = useState(null);
@@ -43,6 +44,19 @@ export default function Clients({ filterStatus }) {
       } catch {}
     })();
   }, []);
+
+  const runSync = async () => {
+    setSyncing(true);
+    try {
+      const res = await api.mtSyncClients();
+      await refreshClients();
+      notify(`${res.updated} ta client online sync holo`);
+    } catch (e) {
+      notify(e?.message || "Sync fail holo");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const notify = (msg) => {
     setToast(msg);
@@ -186,7 +200,7 @@ export default function Clients({ filterStatus }) {
           ["Bulk Status Change", () => setBulkOpen({ type: "status" }), false, selected.size === 0],
           ["Unbind All PPPoE MAC Address", () => setBulkOpen({ type: "mac-unbind" }), false, selected.size === 0],
           ["Bind All PPPoE MAC Address", () => setBulkOpen({ type: "mac-bind" }), false, selected.size === 0],
-          ["Sync Clients & Servers", null, true],
+          ["Sync Clients & Servers", () => runSync(), false, syncing],
           ["Info To Mikrotik", null, true],
         ].map(([label, action, comingSoon, disabled]) => (
           <button
@@ -201,7 +215,8 @@ export default function Clients({ filterStatus }) {
             {label.startsWith("Bulk") && <ArrowRightLeft size={12} />}
             {label.startsWith("Unbind") && <Link2Off size={12} />}
             {label.startsWith("Bind All") && <Link2 size={12} />}
-            {label.startsWith("Sync") && <ServerCog size={12} />}
+            {label.startsWith("Sync") && !syncing && <ServerCog size={12} />}
+            {label.startsWith("Sync") && syncing && <Loader2 size={12} className="animate-spin" />}
             {label.startsWith("Info") && <Info size={12} />}
             {label}
           </button>
